@@ -1,0 +1,32 @@
+model LoyaltyRule {
+  id          String      @id @default(cuid())
+  tier        LoyaltyTier
+  discountPct Int         @default(0)
+  minNights   Int         @default(0)
+  bonusPoints Int         @default(0)
+  description String?
+  isActive    Boolean     @default(true)
+}
+
+model ReferralLink {
+  id          String   @id @default(cuid())
+  guestId     String?
+  code        String   @unique
+  discountPct Int      @default(5)
+  usageCount  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  usages ReferralUsage[]
+}
+
+model ReferralUsage {
+  id             String   @id @default(cuid())
+  referralLinkId String
+  guestId        String?
+  bookingId      String?
+  createdAt      DateTime @default(now())
+
+  referralLink ReferralLink  @relation(fields: [referralLinkId], references: [id])
+  guest        GuestProfile? @relation(fields: [guestId], references: [id])
+}

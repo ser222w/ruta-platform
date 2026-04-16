@@ -1,0 +1,48 @@
+model PhoneCall {
+  id           String    @id @default(cuid())
+  externalId   String?   @unique
+  direction    String
+  phone        String?
+  managerId    String?
+  duration     Int?
+  recordingUrl String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  calledAt     DateTime  @default(now())
+
+  transcription CallTranscription?
+  grading       CallGrading?
+}
+
+model CallTranscription {
+  id        String   @id @default(cuid())
+  callId    String   @unique
+  provider  String?
+  text      String?  @db.Text
+  segments  Json?
+  createdAt DateTime @default(now())
+
+  call    PhoneCall    @relation(fields: [callId], references: [id], onDelete: Cascade)
+  grading CallGrading?
+}
+
+model CallGrading {
+  id               String    @id @default(cuid())
+  callId           String    @unique
+  transcriptionId  String?   @unique
+  cqrScore         Int?
+  greeting         Int?
+  needsIdentified  Int?
+  presentedOffer   Int?
+  handledObjection Int?
+  closingAttempt   Int?
+  summary          String?   @db.Text
+  strengths        String[]
+  weaknesses       String[]
+  gradedAt         DateTime  @default(now())
+  gradedBy         String    @default("deepseek")
+
+  call          PhoneCall          @relation(fields: [callId], references: [id])
+  transcription CallTranscription? @relation(fields: [transcriptionId], references: [id])
+}

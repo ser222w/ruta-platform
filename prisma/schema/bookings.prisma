@@ -1,0 +1,100 @@
+enum BookingStage {
+  QUALIFY
+  PROPOSAL_1
+  REFUSAL_1
+  PROPOSAL_2
+  REFUSAL_2
+  PROPOSAL_3
+  REFUSAL_3
+  PROPOSAL_4
+  INVOICE
+  PREPAYMENT
+  DEVELOPMENT
+  CHECKIN
+  CHECKOUT
+  LOST
+}
+
+enum BookingType {
+  LEAD
+  OPPORTUNITY
+}
+
+enum MealPlan {
+  RO
+  BB
+  HB
+  FB
+  AI
+}
+
+model Booking {
+  id            String       @id @default(cuid())
+  bookingNumber String       @unique
+  type          BookingType  @default(LEAD)
+  stage         BookingStage @default(QUALIFY)
+  propertyId    String
+  guestId       String?
+  closerId      String?
+  farmerId      String?
+
+  checkinDate  DateTime?
+  checkoutDate DateTime?
+  nightsCount  Int       @default(0)
+
+  adultsCount   Int @default(2)
+  childrenCount Int @default(0)
+  infantsCount  Int @default(0)
+
+  mealPlan MealPlan?
+  tariffId String?
+
+  roomsTotal    Decimal @default(0) @db.Decimal(12, 2)
+  servicesTotal Decimal @default(0) @db.Decimal(12, 2)
+  discountTotal Decimal @default(0) @db.Decimal(12, 2)
+  grandTotal    Decimal @default(0) @db.Decimal(12, 2)
+
+  prepayPct     Int     @default(30)
+  prepayAmount  Decimal @default(0) @db.Decimal(12, 2)
+  paidAmount    Decimal @default(0) @db.Decimal(12, 2)
+  paymentStatus String  @default("unpaid")
+
+  portalToken  String? @unique
+  paymentToken String? @unique
+
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  notes      String?
+  isWon      Boolean @default(false)
+  lostReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property     Property      @relation(fields: [propertyId], references: [id])
+  guest        GuestProfile? @relation(fields: [guestId], references: [id])
+  closer       User?         @relation("closer", fields: [closerId], references: [id])
+  farmer       User?         @relation("farmer", fields: [farmerId], references: [id])
+  tariff       Tariff?       @relation(fields: [tariffId], references: [id])
+
+  roomLines    BookingRoomLine[]
+  paymentLines PaymentScheduleLine[]
+  saleOrders   SaleOrder[]
+  activities   Activity[]
+  messages     BookingMessage[]
+}
+
+model BookingRoomLine {
+  id             String  @id @default(cuid())
+  bookingId      String
+  roomCategoryId String
+  roomsCount     Int     @default(1)
+  nightsCount    Int     @default(0)
+  pricePerNight  Decimal @default(0) @db.Decimal(12, 2)
+  total          Decimal @default(0) @db.Decimal(12, 2)
+
+  booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  roomCategory RoomCategory @relation(fields: [roomCategoryId], references: [id])
+}

@@ -1,0 +1,42 @@
+enum LoyaltyTier {
+  NEW
+  FRIEND
+  FAMILY
+  VIP
+}
+
+enum PreferredChannel {
+  PHONE
+  TELEGRAM
+  VIBER
+  WHATSAPP
+  EMAIL
+  INSTAGRAM
+}
+
+model GuestProfile {
+  id               String           @id @default(cuid())
+  name             String
+  phone            String?          @unique
+  email            String?
+  telegramChatId   String?
+  viberId          String?
+  whatsappNumber   String?
+  preferredChannel PreferredChannel @default(PHONE)
+  loyaltyTier      LoyaltyTier      @default(NEW)
+  visitsCount      Int              @default(0)
+  totalRevenue     Decimal          @default(0) @db.Decimal(12, 2)
+  noshowCount      Int              @default(0)
+  npsScore         Int?
+  dietaryNotes     String?
+  allergies        String?
+  roomPreferences  String?
+  marketingConsent Boolean          @default(false)
+  source           String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  bookings  Booking[]
+  activities Activity[]
+  referrals  ReferralUsage[]
+}
