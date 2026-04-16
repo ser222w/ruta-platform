@@ -2,6 +2,35 @@
 
 ## [Unreleased — Task 5: Omnichannel Inbox]
 
+## [0.5.0] — 2026-04-16 — Deploy: app.ruta.cam live
+
+### Infrastructure
+- Hetzner CX33 server `ruta-platform-nbg` (178.104.206.63, Nuremberg)
+- Coolify self-hosted PaaS on server, Traefik reverse proxy + Let's Encrypt SSL
+- PostgreSQL 16 + Redis 7 in Docker on same server (Coolify-managed)
+- GitHub repo `ser222w/ruta-platform` (public) — auto-deploy on push to `main`
+
+### Dockerfile fixes (3 iterations to production)
+- Removed `--frozen-lockfile` (bun version mismatch in CI)
+- Added `openssl` apt install (required by Prisma in node:22-slim)
+- Added `prisma generate --schema ./prisma/schema` in dependencies stage
+- Set `NEXT_PUBLIC_SENTRY_DISABLED=true` as ENV (was ARG — invisible to process.env)
+
+### Database
+- `prisma migrate deploy` — migration `20260416163926_init` applied to prod DB
+- `prisma db seed` — 4 properties, 5 room categories, loyalty rules, test users seeded
+
+### DNS
+- `app.ruta.cam → 178.104.206.63` (DNS-only, Traefik terminates SSL)
+- Let's Encrypt cert issued (CN=app.ruta.cam, issuer R13)
+- Wildcard `*.ruta.cam` proxied on old server — specific record overrides
+
+### Test accounts (password: Test1234!)
+- `admin@ruta.cam` → ADMIN
+- `director@ruta.cam` → DIRECTOR
+- `closer@ruta.cam` → CLOSER
+- `farmer@ruta.cam` → FARMER
+
 ## [0.4.0] — 2026-04-16 — Task 3+4: CASL RBAC + CRM Pipeline UI
 
 ### Task 3 — CASL RBAC

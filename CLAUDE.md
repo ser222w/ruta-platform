@@ -425,14 +425,23 @@ AXIOM_DATASET=""
 
 ## CURRENT STATUS
 
-**Phase:** TASK 4 complete — CRM Pipeline UI shipped
-**Last commit:** `69253fe feat: Task 3+4 — CASL RBAC + CRM Pipeline UI`
+**Phase:** TASK 4 complete + DEPLOY live at app.ruta.cam
+**Last commit:** `6031190 fix: install openssl in Docker + use --schema for multi-file Prisma`
 
 **Done:**
 - ✅ TASK 1: Foundation — Kiranism starter + Better-Auth + Prisma 6 + tRPC + CASL
 - ✅ TASK 2: Prisma schema — 11 domain files (auth, guests, bookings, payments, channels, calls, rooms, planning, accounting, activities, loyalty)
 - ✅ TASK 3: CASL RBAC — `defineAbilitiesFor` in tRPC ctx, `authedProcedure`, 10/10 Vitest tests
 - ✅ TASK 4: CRM Pipeline UI — kanban + table toggle, drag-to-stage, detail Sheet, audit trail
+- ✅ DEPLOY: `https://app.ruta.cam` live, Let's Encrypt SSL, DB migrated + seeded
+
+**Infrastructure:**
+- Server: Hetzner CX33 `ruta-platform-nbg` (178.104.206.63)
+- Coolify project UUID: `pgg88ggs4wcgoggsgc8c8ggw`
+- App UUID: `dgocwo8kco88so4cs4wwc0sg`
+- PostgreSQL UUID: `c0coggc8o8s0c0w8gowcoc00`
+- Redis UUID: `e4gos8k44sgwoc88s40s4s0c`
+- DNS: `app.ruta.cam → 178.104.206.63` (DNS-only, Traefik SSL)
 
 **Key files (Task 3+4):**
 - `src/server/db.ts` — Prisma singleton
