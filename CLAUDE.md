@@ -1,4 +1,4 @@
-# CLAUDE.md — RUTA Business OS
+# CLAUDE.md — Ruta OS
 # Senior Full-Stack TypeScript Developer context
 # Read this BEFORE every session. This is the single source of truth.
 
