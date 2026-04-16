@@ -4,7 +4,7 @@
 
 ## PROJECT IDENTITY
 
-**RUTA Business OS** — operational platform for RUTA Group hotel network (Ukraine, 4 hotels, ~170 rooms).
+**Ruta OS** — operational platform for RUTA Group hotel network (Ukraine, 4 hotels, ~170 rooms).
 Not a CRM — this is the **single source of truth**: sales, operations, omnichannel, telephony, payments, BI, planning.
 
 **Who builds:** CEO Serhiy Korin (product owner + reviewer) + Claude Code (90% of code).
