@@ -16,10 +16,10 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "prepare": "husky",
-    "db:generate": "prisma generate --schema=prisma/schema",
-    "db:push": "prisma db push --schema=prisma/schema",
-    "db:migrate": "prisma migrate dev --schema=prisma/schema",
-    "db:studio": "prisma studio --schema=prisma/schema"
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@casl/ability": "^6.8.0",
@@ -74,6 +74,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.4.2",
     "hono": "^4.12.14",
     "input-otp": "^1.4.2",
     "ioredis": "^5.10.1",
