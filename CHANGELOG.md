@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Modified `db.ts` (2026-04-16 18:41)
 - Modified `seed.ts` (2026-04-16 18:40)
 - Modified `accounting.prisma` (2026-04-16 18:38)
 - Modified `planning.prisma` (2026-04-16 18:38)
