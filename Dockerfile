@@ -14,9 +14,9 @@ RUN npm install -g bun
 # Copy package-related files to leverage Docker cache
 COPY package.json bun.lock* ./
 
-# Install dependencies with frozen lockfile for reproducible builds
+# Install dependencies (no frozen-lockfile — bun version may differ in CI)
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --no-save --frozen-lockfile
+    bun install --no-save
 
 # ============================================
 # Stage 2: Build the Next.js application
@@ -31,9 +31,7 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-ARG NEXT_PUBLIC_SENTRY_DISABLED=true
-
+ENV NEXT_PUBLIC_SENTRY_DISABLED=true
 ENV BUILD_STANDALONE=true
 
 RUN npm run build
