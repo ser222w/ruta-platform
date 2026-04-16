@@ -1,7 +1,25 @@
 # Changelog
 
-## [Unreleased]
-- Modified `db.ts` (2026-04-16 18:41)
+## [Unreleased — Task 5: Omnichannel Inbox]
+
+## [0.4.0] — 2026-04-16 — Task 3+4: CASL RBAC + CRM Pipeline UI
+
+### Task 3 — CASL RBAC
+- `src/server/db.ts` — Prisma singleton (extracted from auth.ts)
+- `src/server/trpc/context.ts` — db user fetch + CASL `ability` in every tRPC context
+- `src/server/trpc/trpc.ts` — `authedProcedure` (session + user + ability guaranteed)
+- `tests/unit/abilities.test.ts` — 10/10 Vitest tests для всіх ролей
+- `vitest.config.ts` + `package.json` — test runner налаштовано
+
+### Task 4 — CRM Pipeline UI
+- `src/server/trpc/routers/crm.ts` — 6 procedures: pipeline, list, getById, updateStage, assignManager, addNote
+- `src/lib/trpc.ts` — tRPC React client + QueryProvider інтеграція
+- `src/components/crm/pipeline-constants.ts` — 8 kanban колонок, STAGE_LABELS, STAGE_BADGE_VARIANT
+- `src/components/crm/booking-card.tsx` — drag-and-drop карточка бронювання
+- `src/components/crm/booking-detail-sheet.tsx` — Sheet: деталі + таймлайн + нотатки + зміна стадії
+- `src/app/dashboard/crm/page.tsx` — kanban + table toggle, drag-to-stage mutation з audit trail
+
+## [0.3.0] — 2026-04-16 — Task 2: Prisma Schema + Foundation
 - Modified `seed.ts` (2026-04-16 18:40)
 - Modified `accounting.prisma` (2026-04-16 18:38)
 - Modified `planning.prisma` (2026-04-16 18:38)

@@ -425,34 +425,31 @@ AXIOM_DATASET=""
 
 ## CURRENT STATUS
 
-**Phase:** Foundation complete (TASK 1 done)
-**Commit:** `feat: foundation — Kiranism starter + Better-Auth + Prisma 6 + tRPC + CASL`
+**Phase:** TASK 4 complete — CRM Pipeline UI shipped
+**Last commit:** `69253fe feat: Task 3+4 — CASL RBAC + CRM Pipeline UI`
 
 **Done:**
-- ✅ Clone + cleanup Kiranism starter
-- ✅ Clerk removed
-- ✅ Better-Auth v1.5 + Prisma adapter
-- ✅ Prisma 6 multi-file schema (8 domain files)
-- ✅ tRPC v11 (context, root router, health procedure)
-- ✅ Hono `/api/health`
-- ✅ CASL RBAC (6 roles)
-- ✅ Sidebar navigation (9 sections, RBAC filtered)
-- ✅ Docker Compose (PostgreSQL 16 + Redis 7)
-- ✅ `next build` — 31/31 routes, TypeScript OK
+- ✅ TASK 1: Foundation — Kiranism starter + Better-Auth + Prisma 6 + tRPC + CASL
+- ✅ TASK 2: Prisma schema — 11 domain files (auth, guests, bookings, payments, channels, calls, rooms, planning, accounting, activities, loyalty)
+- ✅ TASK 3: CASL RBAC — `defineAbilitiesFor` in tRPC ctx, `authedProcedure`, 10/10 Vitest tests
+- ✅ TASK 4: CRM Pipeline UI — kanban + table toggle, drag-to-stage, detail Sheet, audit trail
 
-**Next (TASK 2 — Prisma schema completion):**
-- Add `channels.prisma` (Conversation + Message for omnichannel)
-- Add `planning.prisma` (KpiPlan, KpiActual, VarianceAlert)
-- Add `quotas.prisma` (ChannelQuota)
-- Add `accounting.prisma` (PaymentJournal)
-- Run `prisma migrate dev --name init`
-- Seed: 4 properties, room categories, tariffs, test users
+**Key files (Task 3+4):**
+- `src/server/db.ts` — Prisma singleton
+- `src/server/trpc/context.ts` — CASL ability in every tRPC ctx
+- `src/server/trpc/trpc.ts` — `authedProcedure` (session + user + ability)
+- `src/server/trpc/routers/crm.ts` — pipeline, list, getById, updateStage, assignManager, addNote
+- `src/components/crm/` — BookingCard, BookingDetailSheet, pipeline-constants
+- `src/app/dashboard/crm/page.tsx` — kanban + table, drag-to-stage mutation
+- `tests/unit/abilities.test.ts` — CASL role tests
+- `vitest.config.ts` — test runner config
 
-**Next (TASK 3 — CRM Pipeline UI):**
-- Kanban view with 14 BookingStage columns (first 8 visible)
-- Drag-and-drop between stages (dnd-kit)
-- Stage change → tRPC mutation → Activity audit trail
-- Table view toggle (TanStack Table, server-side pagination)
+**Next (TASK 5 — Omnichannel Inbox):**
+- WhatsApp Cloud API webhook + inbound/outbound
+- Telegram bot (Telegraf) webhook mode
+- Inbox UI: conversation list + message thread + composer
+- Real-time: SSE або polling 5s (MVP)
+- Auto-match guest by phone/email
 
 ---
 
