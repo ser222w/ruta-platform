@@ -8,7 +8,8 @@ FROM node:${NODE_VERSION} AS dependencies
 
 WORKDIR /app
 
-# Install bun to use bun.lock for dependency resolution
+# Install openssl for Prisma and bun for dep resolution
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g bun
 
 # Copy package-related files to leverage Docker cache
@@ -18,11 +19,11 @@ COPY package.json bun.lock* ./
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --no-save
 
-# Copy prisma schema to generate client
+# Copy prisma schema folder to generate client
 COPY prisma ./prisma
 
-# Generate Prisma client (required for TypeScript types in build)
-RUN npx prisma generate
+# Generate Prisma client — multi-file schema in prisma/schema/
+RUN npx prisma generate --schema ./prisma/schema
 
 # ============================================
 # Stage 2: Build the Next.js application
@@ -49,6 +50,9 @@ RUN npm run build
 FROM node:${NODE_VERSION} AS runner
 
 WORKDIR /app
+
+# openssl required by Prisma at runtime
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV PORT=3000
