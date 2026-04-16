@@ -8,8 +8,22 @@ model Property {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
+  // Префікс номера бронювання: P/B/Z/T
+  bookingPrefix    String?  @db.Char(1)
+
+  // LiqPay credentials (окремі для кожного готелю — різні юридичні особи)
+  liqpayPublicKey  String?
+  liqpayPrivateKey String?  // зберігається зашифрованим
+
+  // Контакти
+  address  String?
+  phone    String?
+  email    String?
+  website  String?
+
   roomCategories RoomCategory[]
   bookings       Booking[]
+  promotions     Promotion[]
 }
 
 model RoomCategory {
@@ -52,4 +66,51 @@ model TariffLine {
 
   tariff       Tariff       @relation(fields: [tariffId], references: [id])
   roomCategory RoomCategory @relation(fields: [roomCategoryId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// PROMOTION (знижки, акції, пакети)
+// ─────────────────────────────────────────────
+
+enum PromotionType {
+  EARLY_BIRD   // знижка за раннє бронювання
+  LAST_MINUTE  // знижка в останній момент
+  LONG_STAY    // знижка за тривале проживання
+  PACKAGE      // пакет послуг
+  SEASONAL     // сезонна акція
+  LOYALTY      // знижка для лояльних гостей
+  SPECIAL      // спеціальна пропозиція
+}
+
+model Promotion {
+  id              String        @id @default(cuid())
+  propertyId      String?       // null = всі готелі
+  property        Property?     @relation(fields: [propertyId], references: [id])
+
+  name            String
+  code            String?       @unique  // e.g. "EARLY30"
+  type            PromotionType
+
+  // Вікно бронювання (коли акція активна)
+  bookingDateFrom DateTime?     @db.Date
+  bookingDateTo   DateTime?     @db.Date
+  // Вікно проживання (до яких дат заїзду застосовується)
+  stayDateFrom    DateTime?     @db.Date
+  stayDateTo      DateTime?     @db.Date
+
+  discountPct     Decimal?      @db.Decimal(5, 2)
+  discountAmount  Decimal?      @db.Decimal(10, 2)
+
+  // Перевизначає стандартний prepay тарифу
+  prepayPctOverride Int?
+
+  minNights       Int?
+  minGuests       Int?
+
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([propertyId])
+  @@map("promotions")
 }

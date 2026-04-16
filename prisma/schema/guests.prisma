@@ -14,29 +14,104 @@ enum PreferredChannel {
   INSTAGRAM
 }
 
+enum GuestSegment {
+  SOLO
+  COUPLE
+  FAMILY
+  GROUP
+  CORPORATE
+}
+
+enum GuestStatus {
+  NO_CONTACT
+  ACTIVE
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  COLD
+  CHURNED
+  BLACKLISTED
+}
+
 model GuestProfile {
   id               String           @id @default(cuid())
+  // Унікальний код гостя: G-2026-00123
+  guestCode        String?          @unique
   name             String
   phone            String?          @unique
+  phone2           String?
   email            String?
+  // Числовий chat_id (не @username) — критично для Telegram відправки
   telegramChatId   String?
   viberId          String?
   whatsappNumber   String?
   preferredChannel PreferredChannel @default(PHONE)
+
+  // Демографія
+  birthDate        DateTime?        @db.Date
+  city             String?
+  country          String?          @default("UA")
+
+  // Лояльність
   loyaltyTier      LoyaltyTier      @default(NEW)
   visitsCount      Int              @default(0)
   totalRevenue     Decimal          @default(0) @db.Decimal(12, 2)
+  lastStayDate     DateTime?        @db.Date
+
+  // Сегмент та статус (обчислюється автоматично)
+  segment          GuestSegment?
+  currentStatus    GuestStatus      @default(NO_CONTACT)
+
+  // No-show: ≥2 → 100% prepay; 1 → 70% prepay min
   noshowCount      Int              @default(0)
+
+  // Налаштування та нотатки
   npsScore         Int?
   dietaryNotes     String?
   allergies        String?
   roomPreferences  String?
+  internalNote     String?          @db.Text
   marketingConsent Boolean          @default(false)
+
+  // UTM атрибуція першого контакту
   source           String?
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  bookings  Booking[]
-  activities Activity[]
-  referrals  ReferralUsage[]
+  bookings         Booking[]
+  bookingGuests    BookingGuest[]
+  activities       Activity[]
+  referrals        ReferralUsage[]
+  referralLinks    ReferralLink[]
+  certificates     Certificate[]
+  tags             GuestProfileTag[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([loyaltyTier])
+  @@index([currentStatus])
+}
+
+// Теги побажань гостя (алергії, VIP обслуговування, etc.)
+model WishTag {
+  id      String            @id @default(cuid())
+  name    String            @unique
+  color   String?
+  guests  GuestProfileTag[]
+
+  @@map("wish_tags")
+}
+
+model GuestProfileTag {
+  guestId String
+  tagId   String
+  guest   GuestProfile @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  tag     WishTag      @relation(fields: [tagId], references: [id])
+
+  @@id([guestId, tagId])
+  @@map("guest_profile_tags")
 }

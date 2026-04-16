@@ -1,0 +1,44 @@
+// ─────────────────────────────────────────────
+// PORTAL + SYSTEM (конфіг, cron, portal views)
+// ─────────────────────────────────────────────
+
+// Лог запусків cron-задач (замінює Odoo ir.cron)
+// 5 задач: EOD check, pre-stay, cold reactivation, payment deadline, schedule overdue
+model CronLog {
+  id             String    @id @default(cuid())
+  jobName        String    // "eod_check", "prestay_reminder", "cold_reactivation", etc.
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  status         String    @default("running")  // running / success / failed
+  itemsProcessed Int       @default(0)
+  errorLog       String?   @db.Text
+
+  @@index([jobName, startedAt])
+  @@map("cron_logs")
+}
+
+// Налаштування системи (замінює Odoo ir.config_parameter)
+// Секрети — тільки через env vars, тут лише non-secret runtime config
+model SystemConfig {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// Відстеження відкриттів порталу гостем /portal/booking/[token]
+// Генерує подію "Гість переглянув рахунок" у чатері бронювання
+model PortalPageView {
+  id        String   @id @default(cuid())
+  bookingId String
+  token     String
+  ipAddress String?
+  userAgent String?
+  viewedAt  DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([token])
+  @@map("portal_page_views")
+}

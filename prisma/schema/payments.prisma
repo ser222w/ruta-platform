@@ -1,39 +1,85 @@
+enum SaleOrderState {
+  DRAFT
+  SENT       // посилання на оплату відправлено гостю
+  PAID
+  CANCELLED
+}
+
+enum CertificateState {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
 model PaymentScheduleLine {
   id            String    @id @default(cuid())
   bookingId     String
   sequence      Int       @default(1)
+  label         String?   // "Перший внесок 30%"
+  pct           Int       @default(30)
   amount        Decimal   @db.Decimal(12, 2)
-  dueDate       DateTime?
+  dueDate       DateTime? @db.Date
   paidAt        DateTime?
   status        String    @default("pending")
   paymentToken  String?   @unique
   liqpayOrderId String?
+  // Флаг що нагадування вже заплановано (уникаємо дублів)
+  activityScheduled Boolean @default(false)
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status, dueDate])
+  @@map("payment_schedule_lines")
 }
 
 model SaleOrder {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   bookingId     String
-  liqpayOrderId String?   @unique
-  amount        Decimal   @db.Decimal(12, 2)
-  status        String    @default("created")
+  // Memorable token: polyana-XXXX-XX (~52M комбінацій)
+  paymentToken  String?        @unique
+  tokenExpiresAt DateTime?     // 72 год після генерації
+  liqpayOrderId String?        @unique
+  amount        Decimal        @db.Decimal(12, 2)
+  paidAmount    Decimal        @default(0) @db.Decimal(12, 2)
+  isPaid        Boolean        @default(false)
+  state         SaleOrderState @default(DRAFT)
   paymentMethod String?
   paidAt        DateTime?
+  // Повна відповідь LiqPay callback (для аудиту)
   rawResponse   Json?
-  createdAt     DateTime  @default(now())
+  invoiceNumber String?        // номер рахунку
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("sale_orders")
 }
 
 model Certificate {
-  id         String    @id @default(cuid())
-  code       String    @unique
-  value      Decimal   @db.Decimal(12, 2)
-  usedAmount Decimal   @default(0) @db.Decimal(12, 2)
-  issuedTo   String?
-  validFrom  DateTime  @default(now())
-  validUntil DateTime?
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
+  id              String           @id @default(cuid())
+  code            String           @unique  // CERT-2026-00123
+  ownerId         String?
+  owner           GuestProfile?    @relation(fields: [ownerId], references: [id])
+
+  initialAmount   Decimal          @db.Decimal(10, 2)
+  usedAmount      Decimal          @default(0) @db.Decimal(10, 2)
+  // remainingAmount = initialAmount - usedAmount (обчислюється)
+
+  state           CertificateState @default(ACTIVE)
+  expiresAt       DateTime?        @db.Date
+
+  // Причина видачі: "post_stay", "referral_bonus", "manual", "promotion"
+  issuedReason       String?
+  issuedByBookingId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([state])
+  @@map("certificates")
 }

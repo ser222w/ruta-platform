@@ -59,16 +59,47 @@ model Booking {
   paidAmount    Decimal @default(0) @db.Decimal(12, 2)
   paymentStatus String  @default("unpaid")
 
-  portalToken  String? @unique
-  paymentToken String? @unique
+  // Реферальне посилання
+  referralLinkId  String?
 
+  // Портал гостя — унікальний токен для /portal/booking/[token]
+  portalToken     String?  @unique
+  tokenExpiresAt  DateTime?
+
+  // Платіжний токен (memorable format: polyana-XXXX-XX, ~52M комбінацій)
+  paymentToken    String?  @unique
+  paymentUrl      String?
+
+  // Дедлайн оплати (після якого автозакриття)
+  paymentDeadline DateTime?
+  graceDays       Int       @default(3)
+
+  // UTM атрибуція
   utmSource   String?
   utmMedium   String?
   utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
 
-  notes      String?
+  // Комунікація
+  lastProposalSentAt DateTime?
+  smsSentCount       Int       @default(0)
+  telegramSentCount  Int       @default(0)
+
+  // Опис пропозиції (текст офферу)
+  description String?   @db.Text
+  notes       String?   @db.Text
+
   isWon      Boolean @default(false)
   lostReason String?
+
+  // Таймстемпи переходів по стадіях (для воронки та аналітики)
+  qualifiedAt     DateTime?  // → PROPOSAL_1
+  invoicedAt      DateTime?  // → INVOICE
+  prepaidAt       DateTime?  // → PREPAYMENT (отримано оплату)
+  checkedInAt     DateTime?  // → CHECKIN
+  checkedOutAt    DateTime?  // → CHECKOUT (isWon)
+  farmerHandoffAt DateTime?  // коли фармер призначений
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,13 +108,62 @@ model Booking {
   guest        GuestProfile? @relation(fields: [guestId], references: [id])
   closer       User?         @relation("closer", fields: [closerId], references: [id])
   farmer       User?         @relation("farmer", fields: [farmerId], references: [id])
-  tariff       Tariff?       @relation(fields: [tariffId], references: [id])
+  tariff           Tariff?       @relation(fields: [tariffId], references: [id])
+  referralLink     ReferralLink? @relation(fields: [referralLinkId], references: [id])
 
   roomLines    BookingRoomLine[]
+  guestLines   BookingGuest[]
   paymentLines PaymentScheduleLine[]
   saleOrders   SaleOrder[]
   activities   Activity[]
   messages     BookingMessage[]
+  utmTouches   UtmTouch[]
+
+  @@index([stage])
+  @@index([guestId])
+  @@index([propertyId])
+  @@index([closerId])
+  @@index([checkinDate])
+  @@index([paymentStatus])
+  @@index([portalToken])
+  @@index([paymentToken])
+}
+
+// Список гостей у бронюванні (іменний склад)
+model BookingGuest {
+  id             String        @id @default(cuid())
+  bookingId      String
+  booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  guestProfileId String?
+  guestProfile   GuestProfile? @relation(fields: [guestProfileId], references: [id])
+
+  name           String
+  birthDate      DateTime?     @db.Date
+  // Лід-гість (той хто бронював)
+  isLead         Boolean       @default(false)
+  sortOrder      Int           @default(0)
+
+  @@index([bookingId])
+  @@map("booking_guests")
+}
+
+// UTM touchpoints (атрибуція по всіх контактах: дзвінок, форма, чат, портал)
+model UtmTouch {
+  id          String   @id @default(cuid())
+  bookingId   String?
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+
+  source      String?
+  medium      String?
+  campaign    String?
+  term        String?
+  content     String?
+  touchType   String?  // "call", "form", "chat", "portal"
+  touchAt     DateTime @default(now())
+
+  @@index([bookingId])
+  @@map("utm_touches")
 }
 
 model BookingRoomLine {
