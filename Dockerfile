@@ -18,6 +18,12 @@ COPY package.json bun.lock* ./
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --no-save
 
+# Copy prisma schema to generate client
+COPY prisma ./prisma
+
+# Generate Prisma client (required for TypeScript types in build)
+RUN npx prisma generate
+
 # ============================================
 # Stage 2: Build the Next.js application
 # ============================================
