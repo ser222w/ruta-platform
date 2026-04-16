@@ -1,0 +1,53 @@
+// KPI Planning: plan-fact по місяцях
+// Використовується Revenue Manager та Director
+
+enum KpiMetric {
+  ADR            // середня ціна номеру
+  REVPAR         // RevPAR
+  OCCUPANCY_PCT  // завантаженість %
+  BOOKINGS_COUNT // кількість бронювань
+  REVENUE_TOTAL  // виручка загальна
+  CONVERSION_PCT // конверсія ліди → бронювання
+  NPS            // Net Promoter Score
+}
+
+model KpiPlan {
+  id         String    @id @default(cuid())
+  propertyId String?   // null = по всій мережі
+  metric     KpiMetric
+  month      Int       // 1-12
+  year       Int
+  value      Decimal   @db.Decimal(12, 2)
+  createdBy  String    // userId
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([propertyId, metric, month, year])
+}
+
+model KpiActual {
+  id         String    @id @default(cuid())
+  propertyId String?
+  metric     KpiMetric
+  month      Int
+  year       Int
+  value      Decimal   @db.Decimal(12, 2)
+  // Обраховується автоматично щоночі з БД
+  computedAt DateTime  @default(now())
+
+  @@unique([propertyId, metric, month, year])
+}
+
+model VarianceAlert {
+  id         String   @id @default(cuid())
+  propertyId String?
+  metric     KpiMetric
+  month      Int
+  year       Int
+  planValue  Decimal  @db.Decimal(12, 2)
+  actualValue Decimal @db.Decimal(12, 2)
+  variancePct Decimal @db.Decimal(6, 2)  // % відхилення від плану
+  severity   String   // "warning" | "critical"
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}

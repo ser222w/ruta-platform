@@ -1,0 +1,39 @@
+// Payment Journal для внутрішнього обліку
+// Синхронізація з 1C — CSV export (Phase 3)
+
+enum JournalEntryType {
+  PREPAYMENT     // передоплата від гостя
+  BALANCE        // доплата залишку
+  REFUND         // повернення
+  SERVICE        // оплата додаткових послуг
+  PENALTY        // штраф за no-show/cancellation
+}
+
+enum PaymentMethod {
+  LIQPAY
+  WAYPAY
+  CASH
+  BANK_TRANSFER
+  CARD_TERMINAL
+}
+
+model PaymentJournal {
+  id          String           @id @default(cuid())
+  bookingId   String?
+  guestId     String?
+  type        JournalEntryType
+  method      PaymentMethod
+  amount      Decimal          @db.Decimal(12, 2)
+  currency    String           @default("UAH")
+  description String?
+  externalId  String?          // LiqPay/WayPay transaction ID
+  // Дебет/кредит для подвійного запису
+  debitAccount  String?        // рахунок дебету (для 1C)
+  creditAccount String?        // рахунок кредиту (для 1C)
+  syncedTo1C  Boolean          @default(false)
+  recordedAt  DateTime         @default(now())
+  createdBy   String?          // userId
+
+  @@index([bookingId])
+  @@index([recordedAt])
+}

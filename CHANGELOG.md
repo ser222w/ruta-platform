@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- Modified `accounting.prisma` (2026-04-16 18:38)
+- Modified `planning.prisma` (2026-04-16 18:38)
+- Modified `channels.prisma` (2026-04-16 18:38)
+- Modified `CLAUDE.md` (2026-04-16 18:32)
 - Modified `nav-config.ts` (2026-04-16 18:23)
 - Modified `middleware.ts` (2026-04-16 18:23)
 - Modified `proxy.ts` (2026-04-16 18:23)

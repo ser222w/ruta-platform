@@ -1,0 +1,66 @@
+// Omnichannel: Conversation + Message
+// Канали: Telegram, WhatsApp, Viber, Instagram, Email, Phone
+
+enum ChannelType {
+  TELEGRAM
+  WHATSAPP
+  VIBER
+  INSTAGRAM
+  EMAIL
+  PHONE
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING   // очікує відповіді менеджера
+  RESOLVED
+  SPAM
+}
+
+enum MessageDirection {
+  INBOUND   // від гостя
+  OUTBOUND  // від менеджера
+}
+
+model Conversation {
+  id         String             @id @default(cuid())
+  channel    ChannelType
+  status     ConversationStatus @default(OPEN)
+  guestId    String?
+  bookingId  String?
+  assignedTo String?            // userId
+  externalId String?            // chat_id / thread_id from channel
+  lastMessageAt DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  conversationId String
+  direction      MessageDirection
+  body           String           @db.Text
+  mediaUrl       String?
+  externalId     String?          // message_id from channel
+  isRead         Boolean          @default(false)
+  sentAt         DateTime         @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+// Quota архітектура: channel × month × hotel × room_type
+model ChannelQuota {
+  id             String      @id @default(cuid())
+  propertyId     String
+  roomCategoryId String?     // null = всі категорії
+  channel        String      // "booking.com", "direct", "instagram", etc.
+  month          Int         // 1-12
+  year           Int
+  quotaPct       Int         @default(100)  // % від номерів для цього каналу
+  quotaRooms     Int?        // абсолютне число (override)
+  createdAt      DateTime    @default(now())
+
+  @@unique([propertyId, roomCategoryId, channel, month, year])
+}
