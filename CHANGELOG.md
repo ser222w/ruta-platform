@@ -2,6 +2,51 @@
 
 ## [Unreleased — Task 5: Omnichannel Inbox]
 
+## [0.6.0] — 2026-04-16 — Task 6: Schema Enrichment + Migration Fix
+
+### Task 6 — Prisma Schema Enrichment (Odoo reference)
+
+#### guests.prisma
+- Added `GuestSegment` enum: SOLO, COUPLE, FAMILY, GROUP, CORPORATE
+- Added `GuestStatus` enum: NO_CONTACT, ACTIVE, CONFIRMED, CHECKED_IN, CHECKED_OUT, COLD, CHURNED, BLACKLISTED
+- `GuestProfile` enriched: `guestCode` (unique G-YYYY-NNNNN), `phone2`, `birthDate`, `city`, `country`, `segment`, `currentStatus`, `noshowCount`, `internalNote`, `lastStayDate`, UTM fields
+- New model `WishTag` — guest preference tags (allergy, VIP, etc.) → `@@map("wish_tags")`
+- New model `GuestProfileTag` — M2M join → `@@map("guest_profile_tags")`
+
+#### bookings.prisma
+- `Booking` enriched: `referralLinkId`, `portalToken` (unique), `tokenExpiresAt`, `paymentToken` (unique), `paymentUrl`, `paymentDeadline`, `graceDays`, UTM fields, comms counters, stage timestamps
+- New model `BookingGuest` — named guest list per booking → `@@map("booking_guests")`
+- New model `UtmTouch` — UTM attribution touchpoints → `@@map("utm_touches")`
+- Added 8 indexes on Booking (stage, guestId, propertyId, closerId, checkinDate, paymentStatus, portalToken, paymentToken)
+
+#### rooms.prisma
+- `Property` enriched: `bookingPrefix`, `liqpayPublicKey/PrivateKey`, `address`, `phone`, `email`, `website`
+- Added `PromotionType` enum: EARLY_BIRD, LAST_MINUTE, LONG_STAY, PACKAGE, SEASONAL, LOYALTY, SPECIAL
+- New model `Promotion` — per-property promotions with date windows, discount, prepay override
+
+#### loyalty.prisma
+- `LoyaltyRule` enriched: `certAmount`, `referralBonus`, `priority`, `validFrom/Until` → `@@map("loyalty_rules")`
+- `ReferralLink` enriched: `token` (unique), `clicks`, `conversions`, relation to Booking → `@@map("referral_links")`
+- `ReferralUsage` enriched: `bonusAmount`, `bonusCreditedAt` → `@@map("referral_usages")`
+
+#### payments.prisma
+- Added `SaleOrderState` enum: DRAFT, SENT, PAID, CANCELLED
+- Added `CertificateState` enum: ACTIVE, USED, EXPIRED, CANCELLED
+- `PaymentScheduleLine` enriched: `label`, `pct`, `activityScheduled` flag → `@@map("payment_schedule_lines")`
+- `SaleOrder` enriched: `state`, `paidAmount`, `isPaid`, `invoiceNumber`, `rawResponse` → `@@map("sale_orders")`
+- `Certificate` enriched: `owner` relation to GuestProfile, `state` enum → `@@map("certificates")`
+
+#### portal.prisma (new file)
+- `CronLog` — cron job execution log → `@@map("cron_logs")`
+- `SystemConfig` — key/value system configuration → `@@map("system_config")`
+- `PortalPageView` — guest portal analytics → `@@map("portal_page_views")`
+
+### Migration fix
+- Fixed `20260416203620_task6_schema_enrichment/migration.sql` — removed npm/prisma warn text from lines 1-10 (stdout redirect bug)
+- Resolved failed migration via `prisma migrate resolve --rolled-back` on prod
+- Applied clean migration via temp container on coolify Docker network
+- Prod DB: **38 tables** total
+
 ## [0.5.0] — 2026-04-16 — Deploy: app.ruta.cam live
 
 ### Infrastructure

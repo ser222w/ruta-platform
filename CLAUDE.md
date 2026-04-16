@@ -425,15 +425,16 @@ AXIOM_DATASET=""
 
 ## CURRENT STATUS
 
-**Phase:** TASK 4 complete + DEPLOY live at app.ruta.cam
-**Last commit:** `6031190 fix: install openssl in Docker + use --schema for multi-file Prisma`
+**Phase:** TASK 6 complete + DEPLOY live at app.ruta.cam
+**Last commit:** `d87a8b1 fix: remove npm warn text from task6 migration SQL`
 
 **Done:**
 - ✅ TASK 1: Foundation — Kiranism starter + Better-Auth + Prisma 6 + tRPC + CASL
 - ✅ TASK 2: Prisma schema — 11 domain files (auth, guests, bookings, payments, channels, calls, rooms, planning, accounting, activities, loyalty)
 - ✅ TASK 3: CASL RBAC — `defineAbilitiesFor` in tRPC ctx, `authedProcedure`, 10/10 Vitest tests
 - ✅ TASK 4: CRM Pipeline UI — kanban + table toggle, drag-to-stage, detail Sheet, audit trail
-- ✅ DEPLOY: `https://app.ruta.cam` live, Let's Encrypt SSL, DB migrated + seeded
+- ✅ TASK 6: Schema enrichment — GuestSegment/Status enums, WishTag, BookingGuest, UtmTouch, Promotion, CronLog, SystemConfig, PortalPageView + portal.prisma
+- ✅ DEPLOY: `https://app.ruta.cam` live, Let's Encrypt SSL, DB: 38 tables, migrated + seeded
 
 **Infrastructure:**
 - Server: Hetzner CX33 `ruta-platform-nbg` (178.104.206.63)
@@ -443,7 +444,7 @@ AXIOM_DATASET=""
 - Redis UUID: `e4gos8k44sgwoc88s40s4s0c`
 - DNS: `app.ruta.cam → 178.104.206.63` (DNS-only, Traefik SSL)
 
-**Key files (Task 3+4):**
+**Key files (Task 3+4+6):**
 - `src/server/db.ts` — Prisma singleton
 - `src/server/trpc/context.ts` — CASL ability in every tRPC ctx
 - `src/server/trpc/trpc.ts` — `authedProcedure` (session + user + ability)
@@ -451,7 +452,16 @@ AXIOM_DATASET=""
 - `src/components/crm/` — BookingCard, BookingDetailSheet, pipeline-constants
 - `src/app/dashboard/crm/page.tsx` — kanban + table, drag-to-stage mutation
 - `tests/unit/abilities.test.ts` — CASL role tests
-- `vitest.config.ts` — test runner config
+- `prisma/schema/guests.prisma` — GuestSegment, GuestStatus, WishTag, GuestProfileTag
+- `prisma/schema/bookings.prisma` — BookingGuest, UtmTouch, enriched Booking
+- `prisma/schema/rooms.prisma` — Promotion, enriched Property
+- `prisma/schema/loyalty.prisma` — enriched LoyaltyRule, ReferralLink, ReferralUsage
+- `prisma/schema/payments.prisma` — SaleOrderState, CertificateState enums, @@map tables
+- `prisma/schema/portal.prisma` — CronLog, SystemConfig, PortalPageView
+
+**SSH to prod:** `ssh -tt root@178.104.206.63` (uses `~/.ssh/id_ed25519`, requires `-tt` flag)
+**Run migration on prod:** temp container on coolify network with `prisma@6 migrate deploy`
+**Coolify URL:** `https://cf.ruta.cam` (not coolify.ruta.cam)
 
 **Next (TASK 5 — Omnichannel Inbox):**
 - WhatsApp Cloud API webhook + inbound/outbound
