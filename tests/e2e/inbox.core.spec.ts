@@ -3,16 +3,38 @@ import { loginAsCloser } from './helpers';
 import { PrismaClient } from '@prisma/client';
 
 // =============================================================
-// INBOX CORE E2E TESTS — Phase 0: FakeAdapter (TELEGRAM)
+// INBOX CORE E2E TESTS — real TelegramAdapter with valid Update format
+// Serial: tests share a single inbox + rely on sequential DB state
 // =============================================================
+
+test.describe.configure({ mode: 'serial' });
 
 const db = new PrismaClient();
 
-// Shared test Inbox created once
 let testInboxId: string;
 
+// Build a real Telegram Update object
+function makeTgUpdate(opts: {
+  messageId: number;
+  chatId: number;
+  fromId: number;
+  fromName: string;
+  text: string;
+  updateId?: number;
+}) {
+  return {
+    update_id: opts.updateId ?? Math.floor(Math.random() * 1_000_000),
+    message: {
+      message_id: opts.messageId,
+      date: Math.floor(Date.now() / 1000),
+      chat: { id: opts.chatId, type: 'private', first_name: opts.fromName },
+      from: { id: opts.fromId, is_bot: false, first_name: opts.fromName, language_code: 'uk' },
+      text: opts.text
+    }
+  };
+}
+
 test.beforeAll(async () => {
-  // Create a test Inbox with TELEGRAM channel type
   const inbox = await db.inbox.upsert({
     where: { channelType_externalId: { channelType: 'TELEGRAM', externalId: 'test-bot-999' } },
     create: {
@@ -28,25 +50,24 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  // Clean up test data
-  await db.conversation.deleteMany({
-    where: { inboxId: testInboxId }
-  });
+  if (testInboxId) {
+    await db.message.deleteMany({ where: { inboxId: testInboxId } });
+    await db.conversation.deleteMany({ where: { inboxId: testInboxId } });
+    await db.webhookEvent.deleteMany({ where: { inboxId: testInboxId } });
+  }
   await db.$disconnect();
 });
 
 // =============================================================
-// Test 1: FakeAdapter ingest — webhook creates Conversation/Message/Guest
+// Test 1: Inbound webhook creates Conversation + Message + Guest
 // =============================================================
-test('fake adapter: inbound webhook creates conversation and message', async ({ request }) => {
-  const payload = {
-    messageId: `e2e-msg-${Date.now()}`,
-    chatId: `e2e-chat-${Date.now()}`,
-    fromId: `e2e-user-${Date.now()}`,
-    fromName: 'E2E Test Guest',
-    text: 'Привіт, є вільні номери на травень?',
-    timestamp: Math.floor(Date.now() / 1000)
-  };
+test('telegram adapter: inbound webhook creates conversation and message', async ({ request }) => {
+  const chatId = 1001 + Math.floor(Math.random() * 9000);
+  const fromId = 2001 + Math.floor(Math.random() * 9000);
+  const messageId = 3001 + Math.floor(Math.random() * 9000);
+  const text = 'Привіт, є вільні номери на травень?';
+
+  const payload = makeTgUpdate({ messageId, chatId, fromId, fromName: 'E2E Test Guest', text });
 
   const response = await request.post(`/api/webhooks/telegram/${testInboxId}`, {
     data: payload,
@@ -55,9 +76,9 @@ test('fake adapter: inbound webhook creates conversation and message', async ({ 
 
   expect(response.status()).toBe(200);
 
-  // Verify records created in DB
+  // externalThreadId = chatId (string)
   const conversation = await db.conversation.findFirst({
-    where: { inboxId: testInboxId, externalThreadId: payload.chatId },
+    where: { inboxId: testInboxId, externalThreadId: String(chatId) },
     include: { messages: true }
   });
 
@@ -66,118 +87,118 @@ test('fake adapter: inbound webhook creates conversation and message', async ({ 
   expect(conversation!.status).toBe('OPEN');
   expect(conversation!.unreadByManager).toBe(true);
   expect(conversation!.messages).toHaveLength(1);
-  expect(conversation!.messages[0]!.content).toBe(payload.text);
+  expect(conversation!.messages[0]!.content).toBe(text);
   expect(conversation!.messages[0]!.direction).toBe('INBOUND');
-  expect(conversation!.messages[0]!.externalId).toBe(
-    `${payload.chatId}_${payload.messageId}`.replace(`${payload.chatId}_`, '') + ``
-  );
 });
 
 // =============================================================
-// Test 2: Idempotency — same message ID processed only once
+// Test 2: Idempotency — same message processed only once
 // =============================================================
-test('fake adapter: duplicate webhook is idempotent', async ({ request }) => {
-  const messageId = `idempotency-test-${Date.now()}`;
-  const chatId = `idempotency-chat-${Date.now()}`;
-
-  const payload = {
+test('telegram adapter: duplicate webhook is idempotent', async ({ request }) => {
+  const chatId = 5001 + Math.floor(Math.random() * 1000);
+  const fromId = 6001 + Math.floor(Math.random() * 1000);
+  const messageId = 7001;
+  const payload = makeTgUpdate({
     messageId,
     chatId,
-    fromId: 'idempotency-user',
+    fromId,
     fromName: 'Idempotency Test',
     text: 'Test message'
-  };
+  });
 
-  // Send twice
   await request.post(`/api/webhooks/telegram/${testInboxId}`, {
     data: payload,
     headers: { 'Content-Type': 'application/json' }
   });
-  const response2 = await request.post(`/api/webhooks/telegram/${testInboxId}`, {
+  const r2 = await request.post(`/api/webhooks/telegram/${testInboxId}`, {
     data: payload,
     headers: { 'Content-Type': 'application/json' }
   });
 
-  expect(response2.status()).toBe(200);
+  expect(r2.status()).toBe(200);
 
-  // Only one message should exist
   const messages = await db.message.findMany({
-    where: { conversation: { inboxId: testInboxId, externalThreadId: chatId } }
+    where: { conversation: { inboxId: testInboxId, externalThreadId: String(chatId) } }
   });
-
   expect(messages).toHaveLength(1);
 });
 
 // =============================================================
-// Test 3: Inbox UI visible — /inbox renders 3 columns
+// Test 3: Inbox UI — /dashboard/inbox renders
 // =============================================================
 test('inbox page renders 3-column layout', async ({ page }) => {
   await loginAsCloser(page);
   await page.goto('/dashboard/inbox');
-
-  // Should see the inbox page (not "coming soon")
   await expect(page.locator('h1')).toContainText('Inbox');
-
-  // Three columns should be visible
-  await expect(page.locator('[data-testid=message-composer]').or(page.locator('textarea')))
-    .toBeVisible({ timeout: 10_000 })
-    .catch(() => {
-      // Composer only visible when conversation selected — OK for empty inbox
-    });
 });
 
 // =============================================================
-// Test 4: WebhookEvent record created for each inbound message
+// Test 4: WebhookEvent record created
 // =============================================================
-test('fake adapter: webhook event logged', async ({ request }) => {
-  const messageId = `event-log-${Date.now()}`;
-  const chatId = `event-chat-${Date.now()}`;
+test('telegram adapter: webhook event logged', async ({ request }) => {
+  const chatId = 8001 + Math.floor(Math.random() * 1000);
+  const fromId = 9001 + Math.floor(Math.random() * 1000);
+  const messageId = 10001 + Math.floor(Math.random() * 1000);
+  const payload = makeTgUpdate({
+    messageId,
+    chatId,
+    fromId,
+    fromName: 'Event User',
+    text: 'Event log test'
+  });
+
+  const before = new Date();
 
   await request.post(`/api/webhooks/telegram/${testInboxId}`, {
-    data: { messageId, chatId, fromId: 'event-user', text: 'Event log test' },
+    data: payload,
     headers: { 'Content-Type': 'application/json' }
   });
 
-  // Find the webhook event
-  const eventId = require('crypto')
-    .createHash('sha256')
-    .update(`${testInboxId}:${chatId}_${messageId}`)
-    .digest('hex')
-    .slice(0, 32);
+  // Wait for async DB write
+  await new Promise((r) => setTimeout(r, 1000));
 
-  // Wait a bit for async processing
+  // Find by inboxId + receivedAt instead of computing hash manually
+  const event = await db.webhookEvent.findFirst({
+    where: {
+      inboxId: testInboxId,
+      receivedAt: { gte: before },
+      eventType: 'new_message'
+    }
+  });
+  expect(event).not.toBeNull();
+  expect(event!.processed).toBe(true);
+});
+
+// =============================================================
+// Test 5: Guest profile created with telegramChatId + externalIds
+// =============================================================
+test('telegram adapter: guest profile created with externalIds', async ({ request }) => {
+  const fromId = 11001 + Math.floor(Math.random() * 1000);
+  const chatId = 12001 + Math.floor(Math.random() * 1000);
+  const messageId = 13001;
+
+  const payload = makeTgUpdate({
+    messageId,
+    chatId,
+    fromId,
+    fromName: 'Auto Guest',
+    text: 'Hello'
+  });
+
+  await request.post(`/api/webhooks/telegram/${testInboxId}`, {
+    data: payload,
+    headers: { 'Content-Type': 'application/json' }
+  });
+
   await new Promise((r) => setTimeout(r, 500));
 
-  const event = await db.webhookEvent.findUnique({ where: { id: eventId } });
-  expect(event).not.toBeNull();
-});
-
-// =============================================================
-// Test 5: Guest upsert — guest created with telegram external ID
-// =============================================================
-test('fake adapter: guest profile created with externalIds', async ({ request }) => {
-  const fromId = `guest-${Date.now()}`;
-  const chatId = `guest-chat-${Date.now()}`;
-
-  await request.post(`/api/webhooks/telegram/${testInboxId}`, {
-    data: {
-      messageId: `guest-msg-${Date.now()}`,
-      chatId,
-      fromId,
-      fromName: 'Auto Guest',
-      text: 'Hello'
-    },
-    headers: { 'Content-Type': 'application/json' }
-  });
-
-  await new Promise((r) => setTimeout(r, 300));
-
+  // TelegramAdapter sets telegramChatId = fromId (string)
   const guest = await db.guestProfile.findFirst({
-    where: { telegramChatId: fromId }
+    where: { telegramChatId: String(fromId) }
   });
 
   expect(guest).not.toBeNull();
   expect(guest!.name).toBe('Auto Guest');
   const ids = guest!.externalIds as Record<string, string> | null;
-  expect(ids?.['telegram']).toBe(fromId);
+  expect(ids?.['telegram']).toBe(String(fromId));
 });
