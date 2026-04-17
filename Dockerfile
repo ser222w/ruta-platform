@@ -44,7 +44,24 @@ ENV BUILD_STANDALONE=true
 RUN npm run build
 
 # ============================================
-# Stage 3: Production runner
+# Stage 3: Seeder (run once after deploy)
+# ============================================
+
+FROM node:${NODE_VERSION} AS seeder
+
+WORKDIR /app
+
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY prisma ./prisma
+COPY package.json ./
+
+# seeder entrypoint: npx tsx prisma/seed.ts
+CMD ["npx", "tsx", "prisma/seed.ts"]
+
+# ============================================
+# Stage 4: Production runner
 # ============================================
 
 FROM node:${NODE_VERSION} AS runner

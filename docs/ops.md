@@ -145,6 +145,75 @@ AXIOM_DATASET=""
 
 ---
 
+## Chat Completion Checklist (mandatory — кожен чат виконує це в кінці)
+
+Порядок суворий. Не пропускати кроки, не говорити "done" без зелених результатів.
+
+### Крок 1 — Тести коду
+```bash
+bun run typecheck    # 0 errors — СТОП якщо є, фікс → retry
+bun run lint         # 0 warnings — СТОП якщо є, фікс → retry
+bun run test         # unit tests зелені
+```
+
+**Auto-healing (max 3 спроби на кожен тип):**
+- TypeScript error → виправ тип, не використовуй `any`
+- Lint error → виправ по правилу, не disable
+- Unit fail → виправ логіку або оновлюй snapshot
+
+### Крок 2 — E2E як юзер (Playwright)
+```bash
+bun run test:e2e     # всі сценарії зелені
+```
+
+Тести мають покривати **всі use cases чату** як реальний юзер:
+- loginAs(role) → navigate → interact → assert результат
+- Happy path + edge cases (пустий стан, помилка, RBAC redirect)
+- data-testid на всіх інтерактивних елементах
+
+**Auto-healing:**
+- Element not found → перевір selector, додай `data-testid`
+- Timeout → збільш `waitForSelector` до 10s
+- Auth fail → перевір `loginAs` helper і seed
+- Max 3 спроби → якщо не вийшло, commit з `// TODO: fix e2e — <причина>`
+
+### Крок 3 — Документування
+```bash
+# Обов'язково оновити:
+# - CHANGELOG.md — нова версія з описом що зроблено
+# - CLAUDE.md CURRENT STATUS — оновити статус task
+# - docs/architecture.md — якщо нові роути/сервіси/моделі
+# - docs/business-rules.md — якщо нова бізнес-логіка
+```
+
+### Крок 4 — Commit і push
+```bash
+git config user.name "Sergiy Korin"
+git config user.email "t5551955@gmail.com"
+git add <тільки файли цього чату>   # НІКОЛИ git add -A без перевірки
+git commit -m "feat: <назва> — <що зроблено коротко>"
+```
+
+### Крок 5 — Deploy (одна команда)
+```bash
+npm run deploy
+# Робить: push → trigger Coolify → чекає 3хв → health check → smoke screenshot
+# Якщо fail → читай Coolify logs: https://cf.ruta.cam
+```
+
+### Фінальний звіт (вивести в чат)
+```
+✅ typecheck: 0 errors
+✅ lint: 0 warnings
+✅ unit tests: X/X passed
+✅ e2e tests: X/X passed
+✅ CHANGELOG updated: vX.X.X
+✅ pushed to main
+✅ deployed: app.ruta.cam/dashboard/<сторінка> OK
+```
+
+---
+
 ## Git Conventions
 
 ```bash
