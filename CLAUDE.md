@@ -698,6 +698,70 @@ CHECKOUT → auto-tasks → T+2 "Послідовний дзвінок" → Wrap
 **Run migration on prod:** temp container on coolify network with `prisma@6 migrate deploy`
 **Coolify URL:** `https://cf.ruta.cam` (not coolify.ruta.cam)
 
+---
+
+## DEPLOY WORKFLOW (оновлено 2026-04-17)
+
+### Як працює auto-deploy
+```
+git push origin main
+  → GitHub webhook (hook ID: 606776039) → Coolify
+  → Docker build на сервері (~3-4 хв)
+  → контейнер рестартує автоматично
+```
+
+**Тригер вручну (якщо webhook не спрацював):**
+```bash
+curl -s -X GET \
+  -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
+  "https://cf.ruta.cam/api/v1/deploy?uuid=dgocwo8kco88so4cs4wwc0sg"
+```
+
+**Smoke test після деплою:**
+```bash
+npx playwright screenshot --browser chromium https://app.ruta.cam/dashboard/today /tmp/smoke.png
+```
+
+### Локальна розробка
+```bash
+# 1. Запустити OrbStack (якщо не запущений)
+docker compose up -d          # PostgreSQL:5432 + Redis:6379
+
+# 2. Dev сервер (читає .env.local автоматично)
+npm run dev                   # → http://localhost:3000 (264ms cold start)
+
+# 3. Тести
+npm run test                  # Vitest unit (27 тестів)
+npx playwright test tests/e2e/ # E2E (6 тестів, ~3.4s)
+```
+
+**Тестові акаунти (пароль: `Test1234!`):**
+- `admin@ruta.cam` → ADMIN
+- `closer@ruta.cam` → CLOSER
+- `farmer@ruta.cam` → FARMER
+- `director@ruta.cam` → DIRECTOR
+
+### Prisma на локальній БД
+```bash
+# Міграції
+DATABASE_URL="postgresql://ruta:ruta_dev_password@localhost:5432/ruta_platform" \
+  ./node_modules/.bin/prisma migrate deploy --schema ./prisma/schema
+
+# Seed (після видалення тест-юзерів якщо потрібно оновити паролі)
+DATABASE_URL="postgresql://ruta:ruta_dev_password@localhost:5432/ruta_platform" \
+  ./node_modules/.bin/tsx prisma/seed.ts
+```
+
+**ВАЖЛИВО:** `prisma.config.ts` завантажує `.env.local` → `dotenv` (в такому порядку).
+Seed використовує `@better-auth/utils/password` (scrypt) — той самий алгоритм що Better-Auth.
+
+### Git
+```bash
+git config user.name "Sergiy Korin"
+git config user.email "t5551955@gmail.com"
+```
+Завжди від Sergiy Korin. Ніяких Co-Authored-By.
+
 **Next (TASK 5 — Omnichannel Inbox):**
 - WhatsApp Cloud API webhook + inbound/outbound
 - Telegram bot (Telegraf) webhook mode
