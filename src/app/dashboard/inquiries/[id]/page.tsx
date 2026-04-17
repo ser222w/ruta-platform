@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useTransition } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { callGuest } from '@/server/ringostat/actions';
+import { Icons } from '@/components/icons';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -37,6 +39,18 @@ export default function InquiryDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [showConvert, setShowConvert] = useState(false);
+  const [isCalling, startCall] = useTransition();
+
+  function handleCall(phone: string) {
+    startCall(async () => {
+      const result = await callGuest(phone);
+      if (result.ok) {
+        toast.success('Дзвінок ініційовано — очікуйте дзвінок на ваш телефон');
+      } else {
+        toast.error(result.error ?? 'Не вдалося ініціювати дзвінок');
+      }
+    });
+  }
 
   // Дані звернення
   const { data: inquiry, isLoading, refetch } = trpc.inquiry.getById.useQuery({ id });
@@ -170,7 +184,30 @@ export default function InquiryDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent className='space-y-3'>
             <InfoRow label="Ім'я" value={inquiry.guest?.name ?? inquiry.contactName} />
-            <InfoRow label='Телефон' value={inquiry.guest?.phone ?? inquiry.contactPhone} />
+            {/* Телефон + Click-to-Call */}
+            {(() => {
+              const phone = inquiry.guest?.phone ?? inquiry.contactPhone;
+              return phone ? (
+                <div className='flex items-center justify-between'>
+                  <div>
+                    <p className='text-muted-foreground text-xs mb-0.5'>Телефон</p>
+                    <p className='text-sm'>{phone}</p>
+                  </div>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    disabled={isCalling}
+                    onClick={() => handleCall(phone)}
+                    title='Зателефонувати через Ringostat Smart Phone'
+                  >
+                    <Icons.phone className='h-3.5 w-3.5 mr-1' />
+                    {isCalling ? 'Дзвоню...' : 'Дзвонити'}
+                  </Button>
+                </div>
+              ) : (
+                <InfoRow label='Телефон' value={undefined} />
+              );
+            })()}
             {inquiry.guest?.email && <InfoRow label='Email' value={inquiry.guest.email} />}
             <Separator />
             <InfoRow label='Готель' value={inquiry.property?.name} />

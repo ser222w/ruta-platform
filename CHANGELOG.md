@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.8.2] — 2026-04-17 — Ringostat Smart Phone: contact sync, click-to-call, SIP status, outgoing calls
+
+### Added
+- **Contact Sync → Ringostat Smart Phone** — при вхідному дзвінку автоматично пушимо ім'я гостя + посилання в Smart Phone (API `minicrm/contacts/sync`)
+- **Click-to-Call** — кнопка "Дзвонити" в картці заявки → Server Action `callGuest()` → Ringostat ініціює дзвінок через Smart Phone менеджера (`callback/outward_call`)
+- **SIP Status API** `GET /api/calls/sip-status` — перевірка хто з менеджерів онлайн/на лінії (`sipstatus/online` + `sipstatus/speaking`)
+- **Employee Sync** `POST /api/calls/sync-employees` — одноразова синхронізація менеджерів Ringostat → RUTA Users (email matching, оновлює phone, sipExtension, ringostatId, department)
+- **Outgoing Call Webhook** `?event=outgoing_end` — логування вихідних дзвінків у БД (OUTGOING direction, COMPLETED/ABANDONED status)
+- **Callback support** — `call_type=callback` в `call_start` обробляється як incoming
+- **Structured logging** — JSON-лог для всіх ringostat подій (service: ringostat, рівні info/warn/error)
+
+### Schema
+- `User` += `phone`, `sipExtension`, `ringostatId`, `department`
+- Migration: `20260417_task8b_ringostat_extensions`
+
+### Files
+- `src/server/ringostat/api.ts` — Ringostat API client (syncContactToSmartPhone, initiateCall, getSipStatus, getProjectEmployees)
+- `src/server/ringostat/actions.ts` — Server Actions (callGuest, getManagersSipStatus)
+- `src/app/api/calls/sip-status/route.ts`
+- `src/app/api/calls/sync-employees/route.ts`
+
+### ENV vars (нові)
+```
+RINGOSTAT_PROJECT_ID=108065     # Project ID для Smart Phone API
+NEXT_PUBLIC_APP_URL=https://app.ruta.cam  # для посилань в Smart Phone
+```
+
+### Ringostat UI — 4 webhooks (оновлено)
+```
+1. POST https://app.ruta.cam/api/webhooks/ringostat?event=call_start   → "Before call" (incoming + callback)
+2. POST https://app.ruta.cam/api/webhooks/ringostat?event=call_end     → "After call" (incoming)
+3. POST https://app.ruta.cam/api/webhooks/ringostat?event=missed       → "After call" + фільтр Missed
+4. POST https://app.ruta.cam/api/webhooks/ringostat?event=outgoing_end → "After outgoing call"
+Header: Auth-Key: EXepeznFltwOJTYuKDJvGSnnUBcJEcJC
+```
+
+### E2E tests
+```
+17 tests: 16 passed, 1 skipped (SSE popup — prod-only)
+New: callback, outgoing_end, UTM attribution, auth guards, dismiss button
+```
+
+### After deploy
+```bash
+# Sync Ringostat employees to RUTA users:
+curl -X POST https://app.ruta.cam/api/calls/sync-employees \
+  -H "Cookie: <admin-session>"
+```
+
 ## [0.8.1] — 2026-04-17 — DevOps: deploy automation + prod seed + chat completion checklist
 
 ### Added

@@ -3,8 +3,19 @@ import type { Context } from 'hono';
 import { db } from '@/server/db';
 import { pushToUser } from '@/server/events';
 import type { IncomingCallPayload, CallEndedPayload } from '@/server/events';
+import { syncContactToSmartPhone } from '@/server/ringostat/api';
 
 const ringostatWebhook = new Hono();
+
+// Simple structured logger for ringostat events
+const log = {
+  info: (msg: string, data?: Record<string, unknown>) =>
+    console.log(JSON.stringify({ level: 'info', service: 'ringostat', msg, ...data })),
+  warn: (msg: string, data?: Record<string, unknown>) =>
+    console.warn(JSON.stringify({ level: 'warn', service: 'ringostat', msg, ...data })),
+  error: (msg: string, data?: Record<string, unknown>) =>
+    console.error(JSON.stringify({ level: 'error', service: 'ringostat', msg, ...data }))
+};
 
 // ─────────────────────────────────────────────
 // Types
@@ -129,11 +140,20 @@ ringostatWebhook.post('/', async (c) => {
   const isIncoming = !payload.call_type || payload.call_type === 'in';
 
   if (!externalId) {
+    log.warn('missing call_id', { eventType, caller: payload.caller });
     return c.json({ error: 'Missing call_id' }, 400);
   }
 
-  // ── call_start (incoming) ──────────────────
-  if (eventType === 'call_start' && isIncoming) {
+  log.info('webhook received', {
+    eventType,
+    externalId,
+    callType: payload.call_type,
+    callerPhone,
+    managerId: payload.manager_id
+  });
+
+  // ── call_start (incoming + callback) ──────
+  if (eventType === 'call_start' && (isIncoming || payload.call_type === 'callback')) {
     return handleCallStart(c, externalId, callerPhone, calleePhone, payload);
   }
 
@@ -147,7 +167,12 @@ ringostatWebhook.post('/', async (c) => {
     return handleMissed(c, externalId, callerPhone, calleePhone, payload);
   }
 
-  // Інші події — ігноруємо з 200
+  // ── outgoing_end (вихідний завершено) ─────
+  if (eventType === 'outgoing_end') {
+    return handleOutgoingEnd(c, externalId, callerPhone, calleePhone, payload);
+  }
+
+  log.info('event ignored', { eventType, externalId });
   return c.json({ status: 'ignored', event: eventType }, 200);
 });
 
@@ -168,6 +193,7 @@ async function handleCallStart(
     select: { id: true, inquiryId: true }
   });
   if (existing) {
+    log.info('call_start duplicate', { externalId, callId: existing.id });
     return c.json({ status: 'duplicate', callId: existing.id }, 200);
   }
 
@@ -193,6 +219,19 @@ async function handleCallStart(
         take: 10
       })
     : [];
+
+  // Contact Sync → Ringostat Smart Phone (fire-and-forget)
+  if (callerPhone) {
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+    void syncContactToSmartPhone({
+      phone: callerPhone,
+      name: guest?.name,
+      externalId: guest?.id,
+      links: guest
+        ? [{ label: 'Відкрити в RUTA CRM', url: `${appBaseUrl}/dashboard/inquiries` }]
+        : undefined
+    });
+  }
 
   // Шукаємо менеджера за manager_id (email або ringostat ID)
   const manager = payload.manager_id
@@ -279,6 +318,16 @@ async function handleCallStart(
     pushToUser(manager.id, { type: 'INCOMING_CALL', payload: ssePayload });
   }
 
+  log.info('call_start created', {
+    externalId,
+    callId: result.call.id,
+    inquiryId: result.inquiry.id,
+    guestFound: Boolean(guest),
+    managerFound: Boolean(manager),
+    ltv,
+    stayCount
+  });
+
   return c.json({ status: 'created', callId: result.call.id, inquiryId: result.inquiry.id }, 200);
 }
 
@@ -289,7 +338,7 @@ async function handleCallEnd(c: Context, externalId: string, payload: RingostatP
   });
 
   if (!call) {
-    // Дзвінок не знайдено — ігноруємо (міг бути outgoing або не оброблений)
+    log.warn('call_end: call not found', { externalId });
     return c.json({ status: 'not_found' }, 200);
   }
 
@@ -333,6 +382,7 @@ async function handleCallEnd(c: Context, externalId: string, payload: RingostatP
     pushToUser(call.managerId, { type: 'CALL_ENDED', payload: ssePayload });
   }
 
+  log.info('call_end updated', { externalId, callId: call.id, duration, hasRecording });
   return c.json({ status: 'updated' }, 200);
 }
 
@@ -411,10 +461,103 @@ async function handleMissed(
     return { call, inquiry };
   });
 
+  log.info('missed call created', {
+    externalId,
+    callId: result.call.id,
+    inquiryId: result.inquiry.id,
+    guestFound: Boolean(guest)
+  });
+
   return c.json(
     { status: 'created_missed', callId: result.call.id, inquiryId: result.inquiry.id },
     200
   );
+}
+
+// ─────────────────────────────────────────────
+// D. Outgoing call ended
+// ─────────────────────────────────────────────
+
+async function handleOutgoingEnd(
+  c: Context,
+  externalId: string,
+  callerPhone: string | null,
+  calleePhone: string | null,
+  payload: RingostatPayload
+) {
+  // Idempotency
+  const existing = await db.phoneCall.findUnique({
+    where: { externalId },
+    select: { id: true }
+  });
+  if (existing) {
+    return c.json({ status: 'duplicate', callId: existing.id }, 200);
+  }
+
+  const manager = payload.manager_id
+    ? await db.user.findFirst({
+        where: { OR: [{ email: payload.manager_id }, { name: payload.employee_fio ?? '' }] },
+        select: { id: true }
+      })
+    : null;
+
+  // Шукаємо гостя (для вихідного — callee це гість)
+  const guestPhone = calleePhone ?? callerPhone;
+  const guest = guestPhone
+    ? await db.guestProfile.findFirst({
+        where: { OR: [{ phone: guestPhone }, { phone2: guestPhone }] },
+        select: { id: true, name: true }
+      })
+    : null;
+
+  const duration = toInt(payload.billsec ?? payload.call_duration);
+  const hasRecording = Number(payload.has_recording) === 1;
+  const recordingUrl = payload.recording_wav ?? payload.recording;
+
+  const call = await db.phoneCall.create({
+    data: {
+      externalId,
+      direction: 'OUTGOING',
+      status: duration && duration > 0 ? 'COMPLETED' : 'ABANDONED',
+      callerPhone: callerPhone ?? guestPhone, // хто дзвонив (менеджер або гість при callback)
+      calleePhone: calleePhone,
+      managerId: manager?.id,
+      managerEmail: payload.manager_id,
+      employeeName: payload.employee_fio,
+      duration,
+      hasRecording,
+      recordingUrl: recordingUrl ?? null,
+      recordingId: payload.record,
+      waitTime: toInt(payload.waittime),
+      utmSource: payload.utm_source,
+      utmMedium: payload.utm_medium,
+      utmCampaign: payload.utm_campaign,
+      utmContent: payload.utm_content,
+      utmTerm: payload.utm_term,
+      poolName: payload.pool_name,
+      isProper: toBool(payload.proper_flag),
+      isRepeated: toBool(payload.repeated_flag),
+      landingPage: payload.landing,
+      referrer: payload.refferrer,
+      clientUuid: payload.client_id,
+      callCardUrl: payload.call_card,
+      projectId: payload.project_id
+    }
+  });
+
+  // Якщо є гість — optional: автоматично створити Inquiry (якщо дзвінок відповіли)
+  // Поки не створюємо — вихідний дзвінок ініціюється вручну з картки
+  void guest; // буде використано якщо треба буде лінкувати до inquiry
+
+  log.info('outgoing_end logged', {
+    externalId,
+    callId: call.id,
+    duration,
+    hasRecording,
+    managerId: payload.manager_id
+  });
+
+  return c.json({ status: 'logged', callId: call.id }, 200);
 }
 
 export default ringostatWebhook;

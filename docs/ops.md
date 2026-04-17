@@ -66,7 +66,7 @@ npm run dev             # http://localhost:3000 (264ms Turbopack)
 ### Tests
 ```bash
 npm run test                     # Vitest unit (37 tests)
-npx playwright test tests/e2e/  # Playwright e2e (6 tests, ~3.4s)
+npx playwright test tests/e2e/  # Playwright e2e (30 tests, ~26 passed / 4 skipped)
 ```
 
 ### Prisma commands (local DB)
@@ -118,9 +118,20 @@ LIQPAY_PRIVATE_KEY=""
 WAYPAY_MERCHANT_ACCOUNT=""
 WAYPAY_MERCHANT_SECRET=""
 
-# Telephony (Phase 2)
-RINGOSTAT_API_KEY=""
-RINGOSTAT_WEBHOOK_SECRET=""
+# Telephony — Ringostat (Task 8/8b)
+RINGOSTAT_AUTH_KEY="EXepeznFltwOJTYuKDJvGSnnUBcJEcJC"   # Auth-Key з Ringostat Settings > Integrations > API
+RINGOSTAT_PROJECT_ID="108065"                              # Project ID
+NEXT_PUBLIC_APP_URL="https://app.ruta.cam"                # для посилань в Smart Phone screen pop
+
+# Ringostat webhooks (налаштувати в Ringostat Settings > Integrations > Webhooks 2.0):
+# 1. Before call  → https://app.ruta.cam/api/webhooks/ringostat?event=call_start
+# 2. After call   → https://app.ruta.cam/api/webhooks/ringostat?event=call_end
+# 3. After call (filter: Missed) → https://app.ruta.cam/api/webhooks/ringostat?event=missed
+# 4. After outgoing call → https://app.ruta.cam/api/webhooks/ringostat?event=outgoing_end
+# All use header: Auth-Key: <RINGOSTAT_AUTH_KEY>
+#
+# After deploy — sync employees once:
+# curl -X POST https://app.ruta.cam/api/calls/sync-employees -H "Cookie: <admin-session>"
 
 # Messaging (Phase 3)
 WHATSAPP_PHONE_NUMBER_ID=""
@@ -228,15 +239,59 @@ git config user.email "t5551955@gmail.com"
 
 ---
 
+## Omnichannel Inbox — Webhook Setup (Task 5)
+
+### Telegram Bot
+1. Create bot via `@BotFather`, get token
+2. Create Inbox record in DB (or via admin UI):
+   ```sql
+   INSERT INTO "Inbox" ("channelType","name","externalId","config","isActive")
+   VALUES ('TELEGRAM','My Bot','<bot_username>','{"botToken":"<TOKEN>"}',true);
+   ```
+3. Set webhook in Telegram:
+   ```bash
+   curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://app.ruta.cam/api/webhooks/telegram/<INBOX_ID>"
+   ```
+4. Verify: send message to bot → conversation appears in `/dashboard/inbox`
+
+### e-chat
+1. Get API key from e-chat dashboard
+2. Create Inbox:
+   ```sql
+   INSERT INTO "Inbox" ("channelType","name","externalId","config","isActive")
+   VALUES ('ECHAT','e-chat Widget','<widget_id>','{"apiKey":"<KEY>"}',true);
+   ```
+3. Configure webhook URL in e-chat: `https://app.ruta.cam/api/webhooks/echat/<INBOX_ID>`
+
+### Meta (WhatsApp/FB/IG) — Phase 2 (planned)
+- Webhook URL: `https://app.ruta.cam/api/webhooks/meta`
+- Verification token: `META_WEBHOOK_VERIFY_TOKEN` env var
+- Status: stub implemented, adapter pending
+
+### Email (SMTP inbound)
+- Webhook URL: `https://app.ruta.cam/api/webhooks/email/<INBOX_ID>`
+- Configure MX forwarding in email provider → POST to this URL
+
+### Env vars required
+```bash
+TELEGRAM_BOT_TOKEN=""        # for outbound replies (per-inbox in DB config)
+ECHAT_API_KEY=""             # for outbound replies
+META_WEBHOOK_VERIFY_TOKEN="" # for Meta hub.challenge verification
+```
+
+---
+
 ## External Integrations Status
 
 | System | Purpose | Status |
 |---|---|---|
-| Ringostat | Call tracking → auto lead creation | Phase 2 |
+| Ringostat | Call tracking → auto lead creation | ✅ Live (Task 8/8b) |
+| Telegram | Omnichannel inbox — inbound messages | ✅ Live (Task 5) |
+| e-chat | Omnichannel inbox — website chat | ✅ Live (Task 5) |
 | LiqPay | Primary payment + webhook | Phase 3 (webhook live) |
 | WayForPay | Secondary payment | Phase 3 |
-| WhatsApp Cloud API | Omnichannel inbox | Phase 3 |
-| Telegraf | Telegram bot + notifications | Phase 3 |
+| WhatsApp Cloud API | Omnichannel inbox | Phase 3 (Meta webhook stub) |
+| Facebook / Instagram | Omnichannel inbox | Phase 3 |
 | Soniox/Gladia | STT transcription for calls | Phase 4 |
 | Anthropic Claude | Call grading, AI drafts | Phase 4 |
 | Booking.com / Yield Planet | Channel manager | Phase 5 |
