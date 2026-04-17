@@ -1,18 +1,73 @@
-model PhoneCall {
-  id           String    @id @default(cuid())
-  externalId   String?   @unique
-  direction    String
-  phone        String?
-  managerId    String?
-  duration     Int?
-  recordingUrl String?
-  utmSource    String?
-  utmMedium    String?
-  utmCampaign  String?
-  calledAt     DateTime  @default(now())
+// ─────────────────────────────────────────────
+// PHONE CALLS — дзвінки з Ringostat
+// ─────────────────────────────────────────────
 
-  transcription CallTranscription?
-  grading       CallGrading?
+enum PhoneCallStatus {
+  ACTIVE     // дзвінок іде
+  COMPLETED  // завершено з розмовою
+  MISSED     // пропущено
+  ABANDONED  // кинуто до відповіді
+}
+
+enum PhoneCallDirection {
+  INCOMING  // вхідний
+  OUTGOING  // вихідний
+  CALLBACK  // callback
+}
+
+model PhoneCall {
+  id          String             @id @default(cuid())
+  externalId  String?            @unique // Ringostat call_id (uniqueid)
+  direction   PhoneCallDirection @default(INCOMING)
+  status      PhoneCallStatus    @default(ACTIVE)
+
+  // Номери
+  callerPhone String?  // caller — хто телефонує
+  calleePhone String?  // dst / callee — куди телефонують (номер готелю)
+
+  // Менеджер
+  managerId     String?
+  managerEmail  String?  // з Ringostat employee_fio / manager_id
+  employeeName  String?  // employee_fio
+
+  // Тривалість
+  waitTime    Int?  // seconds — очікування до відповіді
+  duration    Int?  // seconds — billsec (тривалість розмови)
+
+  // Запис
+  hasRecording  Boolean @default(false)
+  recordingUrl  String? // recording_wav
+  recordingId   String? // record
+
+  // UTM (всі 5 каналів)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  // Додатково
+  poolName    String?  // pool_name — назва пулу номерів
+  isProper    Boolean? // proper_flag — цільовий дзвінок
+  isRepeated  Boolean? // repeated_flag — повторний дзвінок
+  landingPage String?  // landing — сторінка з якої дзвонили
+  referrer    String?  // refferrer
+  clientUuid  String?  // client_id — Ringostat visitor UUID
+  callCardUrl String?  // call_card — посилання на картку дзвінка
+  projectId   String?  // Ringostat project_id
+
+  // Зв'язки
+  inquiryId   String?  @unique
+  inquiry     Inquiry? @relation(fields: [inquiryId], references: [id])
+
+  calledAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([callerPhone])
+  @@index([externalId])
+  @@index([managerId])
+  @@index([calledAt])
+  @@map("phone_calls")
 }
 
 model CallTranscription {
