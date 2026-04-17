@@ -53,9 +53,9 @@ test.describe('BI Dashboards', () => {
     await page.goto('/dashboard/payments');
     // Tab вже активний за замовчуванням
     // Чекаємо на table або empty state
-    await expect(page.locator('table, text=Прострочених платежів немає')).toBeVisible({
-      timeout: 5000
-    });
+    await expect(
+      page.locator('table').or(page.getByText('Прострочених платежів немає'))
+    ).toBeVisible({ timeout: 5000 });
   });
 
   // Тест 5: /reports завантажується
