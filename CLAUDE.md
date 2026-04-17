@@ -15,6 +15,12 @@ Serhiy writes requirements (what, not how), reviews PRs, makes product decisions
 **Task prompts:** see `../docs/PHASE_0_SETUP.md` (TASK 1..N)
 **Business principles:** see `../docs/PRINCIPLES.md` — read before every product decision
 
+### Spec docs (read in order for acquisition flow context)
+1. `docs/RUTA_CRM_v2_5_MASTER.md` — Philosophy, IA, data model, UX principles, user journeys, component inventory
+2. `docs/RUTA_CRM_v2_6_ADDENDUM.md` — Farmer flow (Path C), pricing logic (3-layer), GDPR, 26 dev principles
+3. `docs/RUTA_CRM_v2_7_ADDENDUM.md` — GuestRelation, OrderCompanion, Payer (юрособа), birthday automation
+4. `docs/RUTA_CRM_IMPLEMENTATION_v2_7.md` — Full implementation spec: file structure, Prisma schema, encryption, RBAC, server actions, pricing engine, cron patterns
+
 ---
 
 ## DECISION FILTER (apply before every feature/field/dependency)
@@ -420,6 +426,215 @@ SENTRY_DSN=""
 AXIOM_API_KEY=""
 AXIOM_DATASET=""
 ```
+
+---
+
+## UX PRINCIPLES (P1-P20 — from v2.5 MASTER)
+
+### Core UX
+- **P1** — Right Person, Right Screen, Right Time (role-based reality)
+- **P2** — Zero Cognitive Load для новачка (шлях завжди очевидний)
+- **P3** — Above the Fold = вся інформація для прийняття рішення
+- **P4** — Sequential CTA (послідовні, не паралельні дії)
+- **P5** — Zero Friction для гостя (мінімум кроків на guest-facing сторінках)
+- **P6** — Автологування > ручне введення (auto-create Inquiry з Ringostat)
+- **P7** — Незворотні дії = підтвердження + показ наслідків перед виконанням
+- **P8** — Feedback на кожну дію ≤300ms (toast + skeleton)
+- **P9** — Мобільний менеджер = спрощений режим (critical path в 2 tap)
+- **P10** — Помилка = підказка, не покарання (inline hint, не red modal)
+- **P11** — Source-first navigation (меню відбиває звідки запит: chat → call → direct)
+- **P12** — One entity, many states (Замовлення = єдина сутність зі стадіями)
+- **P13** — Defer everything non-core (AI, real-time, mobile — не MVP)
+- **P14** — Foundations > Features (правильна модель > багато функцій)
+- **P15** — Always Next Action (кожна активна картка має одну обов'язкову дію)
+- **P16** — Save Requires Complete Data (blockers > warnings, форма не зберігається без обов'язкових полів)
+- **P17** — Mandatory Wrap-up (обов'язкова форма після кожного дзвінка або закриття задачі)
+- **P18** — Focus Mode Default (видно тільки сьогоднішню чергу, не весь pipeline)
+- **P19** — End-of-Day Zero Mission (0 unprocessed + 0 без next action + 0 overdue = ціль дня)
+- **P20** — Audit Everything (кожна зміна через AuditLog: userId, action, before/after)
+
+**Conflict rules:** P7 > P4 | P2 > P15 | P5 > everything on guest-facing pages
+
+---
+
+## DEV PRINCIPLES (26 правил — з v2.6)
+
+### Architecture
+- **D1** — Server Components за замовчуванням. `"use client"` тільки для useState/useEffect/event handlers
+- **D2** — Server Actions замість API routes. API routes тільки для webhooks і tokenized public endpoints
+- **D3** — Prisma `$transaction` для multi-step ops. Все або нічого
+- **D4** — Zod validation на вході кожного server action: `input → Zod.parse() → throws on invalid`
+- **D5** — Error boundaries на route level (`error.tsx` на кожному route)
+
+### UX Patterns
+- **D6** — Toast на кожну мутацію: success → green "Збережено ✓" 2s, error → red + [Retry]
+- **D7** — Skeleton завжди, Spinner рідко. Spinner всередину кнопки, не overlay. UI блокується <400ms
+- **D8** — Optimistic UI тільки для безпечних дій (toggle, assign). Payment/proposal — wait
+- **D9** — Form = react-hook-form + zod + Shadcn Form. Validate client + re-validate server
+- **D10** — Дати через date-fns, `format(date, 'dd.MM.yyyy')`, uk locale
+- **D11** — URL state через nuqs: фільтри, вкладки, пагінація — shareable, bookmark-able
+- **D12** — TanStack Query для server state: useQuery fetch, useMutation write, automatic refetch
+
+### Feature Pragmatism
+- **D13** — Один шлях, не багато. При двох способах → видаляємо один
+- **D14** — Empty states корисні: "Нічого немає + CTA що робити далі"
+- **D15** — Undo через soft-delete. Психологічна безпека менеджера
+- **D16** — Всі UI-тексти в `lib/i18n/uk.ts` (єдине джерело)
+
+### Performance
+- **D17** — LCP < 2.5s, INP < 200ms, CLS < 0.1
+- **D18** — Images через next/image (width/height + priority для LCP + WebP)
+- **D19** — Індекси на всі WHERE поля: status, assignedTo, propertyId, stage, checkIn
+
+### Deploy / Reliability
+- **D20** — Feature flags у .env: нова фіча за `FEATURE_X=true`, deploy без exposing
+- **D21** — Webhook idempotency: перевірка externalId перед обробкою (WayForPay, Telegram, Ringostat)
+- **D22** — Staging mirrors production (sandbox webhooks активні)
+- **D23** — Monitoring з дня 1: Sentry + Axiom + uptime check
+
+### Ship-first
+- **D24** — 80/20 на фічу: якщо 80% кейсів OK → shipping. 20% edge cases → пізніше
+- **D25** — 24-год turnaround: deploy → real user → feedback → iteration
+- **D26** — Вчасно відмовлятись: якщо складніше ніж планували → викидаємо половину → ship мінімум
+
+---
+
+## TERMINOLOGY (UI укр. ↔ Code EN)
+
+| UI (укр.) | Code (en) | Примітка |
+|---|---|---|
+| Звернення | Inquiry | Raw вхідний контакт |
+| Замовлення | Booking/Order | Основна сутність |
+| Нарахування | Charge | Рядок витрат гостя |
+| Оплата | Payment | Один платіж |
+| Графік оплат | PaymentSchedule | Коли скільки платити |
+| Взаєморозрахунки | settlement tab | Charges + Payments (без Folio!) |
+| До сплати | settlement (computed) | sum(charges) - sum(payments) |
+| Акція | Promo | Правило знижки з умовами |
+| Базова ціна | BAR | Best Available Rate |
+| Сертифікат | Certificate | Money voucher |
+| Платник | Payer | Фізособа або юрособа |
+| Компаньйон | OrderCompanion | Хто їде з гостем |
+| Передача гостя | Handoff | Closer → Farmer event |
+| Задача | Task | Actionable item з deadline |
+| Наступна дія | nextAction | Обов'язкова дія на картці |
+| Підсумкова форма | Wrap-up | Обов'язкова після дзвінка |
+| Завершення дня | EOD Mission | 0 unprocessed/overdue/без action |
+| Сегмент гостя | Segment | NEW / FRIEND / FAMILY / VIP |
+| Журнал змін | AuditLog | Audit trail |
+| Повернення гостя | Winback | Активація після 6+ міс тиші |
+
+---
+
+## BUSINESS RULES (критичні — тут правила, не у коді)
+
+### Pricing — 3-layer cascade
+```
+1. BAR (тариф × ніч × тип номера) → accommodation_total
+2. MEAL PLAN → meal_total
+3. SERVICES (SPA, transfer) → services_total
+4. SUBTOTAL = accommodation + meal + services
+5. MANAGER DISCOUNT (якщо > 10% → блокер, потрібен апрув)
+6. FINAL_TOTAL
+7. CERTIFICATE (зменшує суму до сплати, не знижка): payment_due = max(0, final_total - cert_amount)
+8. PREPAYMENT: payment_due × prepay_pct (за сегментом)
+9. BALANCE = payment_due - prepayment
+```
+
+### Prepayment % by segment
+- NEW → 50%
+- FRIEND → 30%
+- FAMILY → 30%
+- VIP → 20%
+
+### Promo selection (якщо кілька eligible)
+1. Фільтр: property, roomType, дати, minNights, minGuests, channel, advanceDays, guestSegment, blackoutDates
+2. Обираємо найвигіднішу для гостя (найнижча ціна/ніч)
+3. При рівній ціні → вищий priority wins
+4. При рівному priority → старіша (createdAt ASC)
+5. Акції НЕ комбінуються (якщо isStackable != true)
+
+### Split nightly pricing
+Для кожної ночі окремо знаходимо BAR + best promo. Сумуємо. (Гість 21-25 квітня через сезони = різні BAR)
+
+### Certificate rules
+- 3-й візит → auto ₴6,000 (FAMILY segment assign)
+- 5-й візит → auto ₴10,000 + VIP статус
+- День народження → auto ₴3,000
+- Дійсний 6 місяців
+- certificate > final_total → використовуємо final_total, залишок активний
+
+### Guest segmentation (auto-computed)
+```
+NEW:    visitCount == 0
+FRIEND: 1 ≤ visitCount < 5
+FAMILY: 5 ≤ visitCount < 10
+VIP:    visitCount ≥ 10 OR manual
+```
+
+### Post-checkout automation (T+0)
+```
+CHECKOUT → visitCount++ → segment recalc → certificate if 3rd/5th
+→ Task для Farmer: "Послідовний дзвінок" (T+2)
+→ Telegram гостю: NPS запит
+→ якщо NPS < 7 → escalation до керівника
+→ Winback якщо > 6 міс тиші
+```
+
+### No Folio entity (рішення v2.5)
+Charges/Payments/PaymentSchedule — inline в Booking. Немає окремої таблиці Folio.
+Settlement = computed field, не stored: `sum(charges) - sum(payments WHERE status=SUCCEEDED)`
+
+---
+
+## USER JOURNEYS
+
+### Шлях А: Chat → Оплата (Closer, ≤5 кліків, ≤90 сек)
+```
+Вхідне звернення (Telegram/WhatsApp/Instagram)
+→ Webhook → Inquiry(NEW) → auto-assign Closer
+→ Менеджер відкриває чат → відповідає → [Створити замовлення]
+→ Форма Booking: гість + номер + тариф → ціна auto-calc
+→ [Сформувати рахунок] → PaymentSchedule created → tokenized URL
+→ [Надіслати посилання] → Telegram/WhatsApp → гість платить
+→ Webhook payment → stage=PREPAYMENT → auto-assign Farmer
+```
+
+### Шлях B: Дзвінок → Оплата (Closer, ≤3 кліки, ≤60 сек)
+```
+Ringostat webhook → incoming call
+→ Screen pop: "Olena K., 3 заїзди, LTV ₴42k"
+→ Booking auto-created, stage=QUALIFY, форма відкрита
+→ Під час дзвінка: менеджер заповнює дати + номер
+→ ⌘Enter → [Сформувати + надіслати]
+→ Дзвінок завершується → MANDATORY Wrap-up (summary 10+ слів + результат)
+```
+
+### Шлях C: Farmer Retention (T+0 → T+180)
+```
+CHECKOUT → auto-tasks → T+2 "Послідовний дзвінок" → Wrap-up → next Task
+→ T+7-14 персональна пропозиція → якщо "yes" → новий Inquiry → Шлях А
+→ T+30/60/90 seasonal trigger
+→ T+180 Winback (якщо мовчання)
+```
+
+---
+
+## COMPONENT INVENTORY
+
+### Збудувати (custom, critical)
+- `OrderCard` — 5 вкладок + контекст-панель (основний компонент системи)
+- `ChargesTable` — Взаєморозрахунки з типами нарахувань
+- `PaymentScheduleList` — Графік + статуси оплат
+- `NextActionBanner` — Always-visible у кожній картці
+- `WrapUpForm` — Mandatory після call/unqualify/lost
+- `ProposalPage` — Guest-facing /portal/booking/[token] (mobile-first)
+- `SensitiveField` — Masked display для документів (documentNumber)
+- `EODProgress` — "Завершення дня" widget
+
+### З Shadcn (copy/npx)
+`Sheet` (slide-over), `Command` (⌘K), `Tabs` (Order card), `Dialog` (confirms),
+`Skeleton`, `Toast/Sonner`, `Badge` (статуси), `Calendar` (DatePicker), `Combobox` (номер/тариф)
 
 ---
 

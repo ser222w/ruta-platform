@@ -22,6 +22,8 @@ model User {
   managedBookings Booking[]    @relation("closer")
   farmedBookings  Booking[]    @relation("farmer")
   activities      Activity[]
+  assignedInquiries Inquiry[]  @relation("inquiryAssignee")
+  assignedTasks     Task[]     @relation("taskAssignee")
 }
 
 model Session {

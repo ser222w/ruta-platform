@@ -118,6 +118,8 @@ model Booking {
   activities   Activity[]
   messages     BookingMessage[]
   utmTouches   UtmTouch[]
+  inquiry      Inquiry?
+  tasks        Task[]
 
   @@index([stage])
   @@index([guestId])

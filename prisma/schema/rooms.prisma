@@ -24,6 +24,7 @@ model Property {
   roomCategories RoomCategory[]
   bookings       Booking[]
   promotions     Promotion[]
+  inquiries      Inquiry[]
 }
 
 model RoomCategory {

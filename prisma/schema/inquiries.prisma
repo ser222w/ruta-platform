@@ -1,0 +1,126 @@
+// ─────────────────────────────────────────────
+// INQUIRY — вхідне звернення (до створення Booking)
+// ─────────────────────────────────────────────
+
+enum InquiryStatus {
+  NEW         // щойно надійшло
+  IN_PROGRESS // менеджер взяв у роботу
+  CONVERTED   // перетворено на Booking
+  ARCHIVED    // закрито без конверсії
+}
+
+enum InquirySource {
+  PHONE
+  TELEGRAM
+  WHATSAPP
+  INSTAGRAM
+  VIBER
+  SITE_FORM
+  MANUAL      // менеджер створив вручну
+  RINGOSTAT   // авто з дзвінка
+}
+
+model Inquiry {
+  id          String        @id @default(cuid())
+  status      InquiryStatus @default(NEW)
+  source      InquirySource @default(MANUAL)
+
+  // Зв'язок з гостем (може бути не заповнений для нових)
+  guestId     String?
+  guest       GuestProfile? @relation(fields: [guestId], references: [id])
+
+  // Призначений менеджер (Closer)
+  assignedToId String?
+  assignedTo   User?         @relation("inquiryAssignee", fields: [assignedToId], references: [id])
+
+  // Готель та орієнтовні дати
+  propertyId  String?
+  property    Property?     @relation(fields: [propertyId], references: [id])
+  checkInDate DateTime?     @db.Date
+  checkOutDate DateTime?    @db.Date
+  adultsCount Int           @default(2)
+
+  // Контактні дані (якщо гість не знайдений в системі)
+  contactPhone String?
+  contactName  String?
+  contactNote  String?       @db.Text
+
+  // Наступна обов'язкова дія
+  nextAction  String?
+  nextActionAt DateTime?
+
+  // Конверсія
+  bookingId   String?       @unique
+  booking     Booking?      @relation(fields: [bookingId], references: [id])
+  convertedAt DateTime?
+
+  // Зовнішній ID (для автоматичних джерел: Ringostat callId, тощо)
+  externalId  String?       @unique
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tasks       Task[]
+
+  @@index([status])
+  @@index([guestId])
+  @@index([assignedToId])
+  @@index([propertyId])
+  @@index([createdAt])
+  @@map("inquiries")
+}
+
+// ─────────────────────────────────────────────
+// TASK — задача менеджера з дедлайном
+// ─────────────────────────────────────────────
+
+enum TaskType {
+  CALL_BACK       // передзвонити гостю
+  SEND_PROPOSAL   // відправити пропозицію
+  FOLLOW_UP       // фоллоу-ап після звернення
+  CONFIRM_ARRIVAL // підтвердити заїзд
+  POST_STAY_CALL  // дзвінок після виїзду
+  SEND_DOCS       // відправити документи
+  PAYMENT_REMINDER // нагадати про оплату
+  MANUAL          // довільна задача
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  type        TaskType   @default(MANUAL)
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(PENDING)
+
+  // Відповідальний менеджер
+  assignedToId String
+  assignedTo   User       @relation("taskAssignee", fields: [assignedToId], references: [id])
+
+  // Зв'язки з сутностями
+  bookingId   String?
+  booking     Booking?   @relation(fields: [bookingId], references: [id])
+
+  inquiryId   String?
+  inquiry     Inquiry?   @relation(fields: [inquiryId], references: [id])
+
+  guestId     String?
+  guest       GuestProfile? @relation(fields: [guestId], references: [id])
+
+  dueAt       DateTime?
+  doneAt      DateTime?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([assignedToId, status])
+  @@index([bookingId])
+  @@index([dueAt])
+  @@map("tasks")
+}

@@ -89,6 +89,8 @@ model GuestProfile {
   referralLinks    ReferralLink[]
   certificates     Certificate[]
   tags             GuestProfileTag[]
+  inquiries        Inquiry[]
+  tasks            Task[]
 
   @@index([phone])
   @@index([email])
