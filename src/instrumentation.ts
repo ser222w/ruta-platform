@@ -20,14 +20,17 @@ const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
 export async function register() {
   if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-      // Node.js Sentry configuration
       Sentry.init(sentryOptions);
     }
-
     if (process.env.NEXT_RUNTIME === 'edge') {
-      // Edge Sentry configuration
       Sentry.init(sentryOptions);
     }
+  }
+
+  // IMAP polling cron — runs only in Node.js server process, not Edge
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { startImapPoller } = await import('./server/services/channels/imap-poller');
+    startImapPoller();
   }
 }
 
