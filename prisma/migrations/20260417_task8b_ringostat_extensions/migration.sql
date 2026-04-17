@@ -1,7 +1,7 @@
 -- Migration: Task 8b — Add Ringostat fields to User table
 -- phone, sipExtension, ringostatId, department
 
-ALTER TABLE "users"
+ALTER TABLE "User"
   ADD COLUMN IF NOT EXISTS "phone"        TEXT,
   ADD COLUMN IF NOT EXISTS "sipExtension" TEXT,
   ADD COLUMN IF NOT EXISTS "ringostatId"  TEXT,
