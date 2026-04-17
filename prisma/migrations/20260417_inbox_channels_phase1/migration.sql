@@ -1,8 +1,8 @@
--- CreateEnum
-CREATE TYPE "PhoneCallStatus" AS ENUM ('ACTIVE', 'COMPLETED', 'MISSED', 'ABANDONED');
+-- CreateEnum (idempotent)
+DO $$ BEGIN CREATE TYPE "PhoneCallStatus" AS ENUM ('ACTIVE', 'COMPLETED', 'MISSED', 'ABANDONED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- CreateEnum
-CREATE TYPE "PhoneCallDirection" AS ENUM ('INCOMING', 'OUTGOING', 'CALLBACK');
+-- CreateEnum (idempotent)
+DO $$ BEGIN CREATE TYPE "PhoneCallDirection" AS ENUM ('INCOMING', 'OUTGOING', 'CALLBACK'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- AlterEnum
 BEGIN;
