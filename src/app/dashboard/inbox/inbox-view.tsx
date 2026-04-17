@@ -60,10 +60,10 @@ export function InboxView() {
   });
 
   const conversations = convData?.items ?? [];
-  const guestMap: Record<string, string> = {};
+  // Map guestId → guest data for name/phone display
+  const guestMap: Record<string, { name: string; phone?: string | null }> = {};
   for (const g of convData?.guests ?? []) {
-    // Match by looking at inquiry conversationId — simplified for now
-    guestMap[g.id] = g.name;
+    guestMap[g.id] = g;
   }
 
   // Messages for selected conversation
@@ -92,9 +92,14 @@ export function InboxView() {
     markReadMutation.mutate({ conversationId: id });
   }
 
-  function handleSend() {
-    if (!draft.trim() || !conversationId) return;
-    sendMutation.mutate({ conversationId, content: draft.trim() });
+  function handleSend(attachments?: { url: string; mime: string; name: string; size?: number }[]) {
+    if (!draft.trim() && !attachments?.length) return;
+    if (!conversationId) return;
+    sendMutation.mutate({
+      conversationId,
+      content: draft.trim() || '[медіа]',
+      attachments
+    });
   }
 
   return (
@@ -160,7 +165,7 @@ export function InboxView() {
                 conversations={conversations}
                 selectedId={conversationId ?? undefined}
                 onSelect={handleSelectConversation}
-                guestNames={guestMap}
+                guests={guestMap}
               />
             )}
           </div>

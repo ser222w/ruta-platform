@@ -146,12 +146,14 @@ export const inboxRouter = router({
         nextCursor = next?.lastMessageAt?.toISOString();
       }
 
-      // Enrich with guest name if available
-      const conversationIds = items.map((c) => c.id);
-      const guests = await db.guestProfile.findMany({
-        where: { inquiries: { some: { conversationId: { in: conversationIds } } } },
-        select: { id: true, name: true, phone: true, loyaltyTier: true }
-      });
+      // Enrich with guest data — keyed by guestId for O(1) lookup in UI
+      const guestIds = items.map((c) => c.guestId).filter(Boolean) as string[];
+      const guests = guestIds.length
+        ? await db.guestProfile.findMany({
+            where: { id: { in: guestIds } },
+            select: { id: true, name: true, phone: true, telegramChatId: true, loyaltyTier: true }
+          })
+        : [];
 
       return { items, nextCursor, guests };
     }),

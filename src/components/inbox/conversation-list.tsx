@@ -5,18 +5,12 @@ import { uk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { ChannelBadge } from './channel-badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-interface ConversationItem {
-  id: string;
-  channel: string;
-  status: string;
-  unreadByManager: boolean;
-  lastMessageAt: Date | string | null;
-  messages: Array<{ content: string; direction: string; sentAt: Date | string }>;
-  inbox: { name: string; channelType: string; brand?: { name: string } | null };
-  assignedTo?: { id: string; name: string; image?: string | null } | null;
+interface GuestInfo {
+  name: string;
+  phone?: string | null;
+  telegramChatId?: string | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +20,8 @@ interface ConversationListProps {
   conversations: AnyConversation[];
   selectedId?: string;
   onSelect: (id: string) => void;
-  guestNames?: Record<string, string>;
+  // guestId → GuestInfo
+  guests?: Record<string, GuestInfo>;
 }
 
 function getInitials(name: string): string {
@@ -38,11 +33,25 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+function getTelegramAvatarUrl(telegramChatId: string | null | undefined): string | undefined {
+  // Telegram doesn't expose avatars without Bot API getChat call — leave for future
+  // When we have it stored on GuestProfile, we'd return it here
+  void telegramChatId;
+  return undefined;
+}
+
+function getDisplayName(conv: AnyConversation, guest: GuestInfo | undefined): string {
+  if (guest?.name && guest.name !== 'Невідомий гість') return guest.name;
+  if (guest?.phone) return guest.phone;
+  if (conv.externalThreadId) return conv.externalThreadId;
+  return 'Гість';
+}
+
 export function ConversationList({
   conversations,
   selectedId,
   onSelect,
-  guestNames = {}
+  guests = {}
 }: ConversationListProps) {
   return (
     <ScrollArea className='h-full'>
@@ -54,7 +63,9 @@ export function ConversationList({
         )}
         {conversations.map((conv) => {
           const lastMsg = conv.messages[0];
-          const guestName = guestNames[conv.id] ?? 'Гість';
+          const guest = conv.guestId ? guests[conv.guestId] : undefined;
+          const displayName = getDisplayName(conv, guest);
+          const avatarUrl = getTelegramAvatarUrl(guest?.telegramChatId);
           const isSelected = conv.id === selectedId;
 
           return (
@@ -69,7 +80,8 @@ export function ConversationList({
             >
               <div className='flex items-start gap-3'>
                 <Avatar className='mt-0.5 h-9 w-9 shrink-0'>
-                  <AvatarFallback className='text-xs'>{getInitials(guestName)}</AvatarFallback>
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                  <AvatarFallback className='text-xs'>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
 
                 <div className='min-w-0 flex-1'>
@@ -80,7 +92,7 @@ export function ConversationList({
                         conv.unreadByManager ? 'font-semibold' : 'font-medium'
                       )}
                     >
-                      {guestName}
+                      {displayName}
                     </span>
                     <span className='text-muted-foreground shrink-0 text-[10px]'>
                       {conv.lastMessageAt

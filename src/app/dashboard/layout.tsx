@@ -5,12 +5,13 @@ import { InfoSidebar } from '@/components/layout/info-sidebar';
 import { AppEventsProvider } from '@/components/shared/app-events-provider';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { auth } from '@/server/auth';
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn Dashboard Starter',
-  description: 'Basic dashboard with Next.js and Shadcn',
+  title: 'Ruta OS',
+  description: 'Operational platform for RUTA Group',
   robots: {
     index: false,
     follow: false
@@ -21,11 +22,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  const sessionUser = session?.user
+    ? { name: session.user.name ?? '', email: session.user.email ?? '' }
+    : { name: 'RUTA User', email: '' };
+
   return (
     <KBar>
       <SidebarProvider defaultOpen={defaultOpen}>
         <InfobarProvider defaultOpen={false}>
-          <AppSidebar />
+          <AppSidebar user={sessionUser} />
           <SidebarInset>
             <Header />
             {/* page main content */}

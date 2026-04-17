@@ -8,10 +8,27 @@ import { formatCurrency, formatPercent } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 export default function PlanningPage() {
-  const { data: kpis, isLoading: kpisLoading } = trpc.dashboard.planningKpis.useQuery();
+  const {
+    data: kpis,
+    isLoading: kpisLoading,
+    error: kpisError
+  } = trpc.dashboard.planningKpis.useQuery();
   const { data: trend, isLoading: trendLoading } = trpc.dashboard.revenueTrend.useQuery();
   const { data: channels, isLoading: channelsLoading } = trpc.dashboard.channelMix.useQuery();
   const { data: managers, isLoading: managersLoading } = trpc.dashboard.managerStats.useQuery();
+
+  const isForbidden = kpisError?.data?.code === 'FORBIDDEN';
+
+  if (isForbidden) {
+    return (
+      <div className='p-6 max-w-7xl mx-auto'>
+        <h1 className='text-2xl font-semibold mb-2'>Planning</h1>
+        <p className='text-muted-foreground text-sm'>
+          Цей розділ доступний лише для директора та адміністратора.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='p-6 max-w-7xl mx-auto space-y-6'>

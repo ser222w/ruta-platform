@@ -34,17 +34,20 @@ import * as React from 'react';
 import { Icons } from '../icons';
 import { OrgSwitcher } from '../org-switcher';
 
-export default function AppSidebar() {
+export default function AppSidebar({
+  user: sessionUser
+}: {
+  user: { name: string; email: string };
+}) {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
 
-  // Placeholder user — will be replaced with Better-Auth session hook
   const user = {
-    fullName: 'RUTA User',
+    fullName: sessionUser.name,
     imageUrl: undefined as string | undefined,
-    emailAddresses: [{ emailAddress: 'user@ruta.group' }]
+    emailAddresses: [{ emailAddress: sessionUser.email }]
   };
 
   React.useEffect(() => {

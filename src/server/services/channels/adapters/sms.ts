@@ -58,13 +58,13 @@ export class SmsAdapter implements ChannelAdapter {
     const response = await fetch(TURBOSMS_API, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiToken}`
       },
       body: JSON.stringify({
-        token: config.apiToken,
         recipients: [phone],
         sms: {
-          sender: config.senderName ?? 'RUTA',
+          sender: config.senderName ?? 'RutaResort',
           text: content
         }
       })

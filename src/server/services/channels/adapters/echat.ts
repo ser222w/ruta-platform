@@ -20,7 +20,7 @@ import type { ChannelAdapter, ParsedInboundEvent, Attachment } from '../adapter'
 // }
 // =============================================================
 
-const ECHAT_BASE = 'https://telegram.e-chat.tech';
+const ECHAT_BASE = 'https://telegram.e-chat.tech/api';
 
 interface EchatConfig {
   apiKey: string;

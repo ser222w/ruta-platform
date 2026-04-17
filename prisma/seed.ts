@@ -5,6 +5,8 @@ import { hashPassword } from '@better-auth/utils/password';
 
 const prisma = new PrismaClient();
 
+const msgFields = (inboxId: string) => ({ inboxId });
+
 async function main() {
   console.log('🌱 Seeding RUTA Platform...');
 
@@ -575,8 +577,6 @@ async function main() {
       brandId: polyana.id
     }
   });
-
-  const msgFields = (inboxId: string) => ({ inboxId });
 
   await prisma.conversation.create({
     data: {
