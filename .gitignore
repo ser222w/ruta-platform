@@ -48,3 +48,10 @@ next-env.d.ts
 .env.sentry-build-plugin
 
 /generated/prisma
+
+# playwright test artifacts
+/test-results/
+/playwright-report/
+
+# claude code logs
+/.claude/logs/
