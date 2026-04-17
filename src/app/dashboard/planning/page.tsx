@@ -17,9 +17,12 @@ export default function PlanningPage() {
   const { data: channels, isLoading: channelsLoading } = trpc.dashboard.channelMix.useQuery();
   const { data: managers, isLoading: managersLoading } = trpc.dashboard.managerStats.useQuery();
 
-  const isForbidden = kpisError?.data?.code === 'FORBIDDEN';
+  const isForbidden =
+    kpisError?.data?.code === 'FORBIDDEN' ||
+    kpisError?.data?.httpStatus === 403 ||
+    (kpisError as { message?: string } | null)?.message === 'FORBIDDEN';
 
-  if (isForbidden) {
+  if (isForbidden || (!kpisLoading && kpisError)) {
     return (
       <div className='p-6 max-w-7xl mx-auto'>
         <h1 className='text-2xl font-semibold mb-2'>Planning</h1>
