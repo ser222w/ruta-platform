@@ -1,6 +1,7 @@
 # CHAT B — Ringostat: Auto-Inquiry від дзвінка
 # Запускати ПІСЛЯ того як Chat A завершено і змерджено в main
 # Вставити цілком у новий чат Claude Code в директорії ruta-platform/
+# ФІНАЛЬНА ФАЗА: виконай docs/ops.md "Chat Completion Checklist" (typecheck→lint→test→e2e→docs→commit→push→deploy verify)
 
 ---
 

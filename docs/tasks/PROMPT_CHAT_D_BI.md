@@ -2,6 +2,7 @@
 # Запускати ПАРАЛЕЛЬНО з Chat B і Chat C після завершення Chat A
 # Найбезпечніший чат — тільки читає з DB, нічого не пише
 # Вставити цілком у новий чат Claude Code в директорії ruta-platform/
+# ФІНАЛЬНА ФАЗА: виконай docs/ops.md "Chat Completion Checklist" (typecheck→lint→test→e2e→docs→commit→push→deploy verify)
 
 ---
 

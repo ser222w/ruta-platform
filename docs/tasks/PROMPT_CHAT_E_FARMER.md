@@ -1,6 +1,7 @@
 # CHAT E — Farmer Retention Flow
 # Запускати ПІСЛЯ завершення Chat A (і бажано Chat B для SSE)
 # Вставити цілком у новий чат Claude Code в директорії ruta-platform/
+# ФІНАЛЬНА ФАЗА: виконай docs/ops.md "Chat Completion Checklist" (typecheck→lint→test→e2e→docs→commit→push→deploy verify)
 
 ---
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.1] — 2026-04-17 — DevOps: deploy automation + prod seed + chat completion checklist
+
+### Added
+- `scripts/deploy.sh` — одна команда `npm run deploy`: push → Coolify trigger → 3хв wait → health check → smoke screenshot
+- `scripts/prod-seed.sh` — `npm run db:seed:prod`: запускає seed проти prod DB через seeder Docker stage
+- `Dockerfile` — новий `seeder` stage: містить `prisma/` + `tsx` для запуску seed в prod середовищі
+- `package.json` — нові скрипти: `deploy`, `db:seed:prod`
+- `docs/ops.md` — розділ "Chat Completion Checklist": обов'язковий порядок для кожного чату (typecheck→lint→test→e2e→docs→commit→deploy)
+- `docs/tasks/PROMPT_CHAT_*.md` — посилання на Chat Completion Checklist в шапці кожного промпту
+
+### Fixed
+- Prod паролі тестових акаунтів — оновлено до коректного scrypt формату (`salt:hash` від `@better-auth/utils/password`)
+- Всі 4 акаунти (`admin/closer/farmer/director@ruta.cam`) доступні з паролем `Test1234!`
+
 ## [0.8.0] — 2026-04-17 — Chat B: Ringostat Webhook + SSE Screen Pop
 
 ### Added

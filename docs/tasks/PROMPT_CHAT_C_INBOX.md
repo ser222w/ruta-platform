@@ -1,6 +1,7 @@
 # CHAT C — Omnichannel Inbox (WhatsApp + Telegram)
 # Запускати ПАРАЛЕЛЬНО з Chat B і Chat D після завершення Chat A
 # Вставити цілком у новий чат Claude Code в директорії ruta-platform/
+# ФІНАЛЬНА ФАЗА: виконай docs/ops.md "Chat Completion Checklist" (typecheck→lint→test→e2e→docs→commit→push→deploy verify)
 
 ---
 
