@@ -194,6 +194,52 @@ Instagram/Phone → Lead (QUALIFY) → Closer (up to 4 proposals)
 
 ---
 
+## UI Reference Patterns (src/features/)
+
+The `src/features/` directory contains **template implementations** — never delete them.
+They serve as copy-paste scaffolds for new RUTA features and are used directly by some live pages.
+
+### Status of each directory
+
+| Directory | Status | Used by | Purpose / What to copy |
+|---|---|---|---|
+| `features/users/` | **LIVE** | `/dashboard/users` | Full CRUD: DataTable + toolbar + sheet form + React Query. Reference for guests, rooms, pricing pages |
+| `features/kanban/` | **LIVE** | `/dashboard/crm` (via `components/ui/kanban`) | Drag-drop primitives, `restrict-to-container` util, Zustand task store |
+| `features/notifications/` | **LIVE** | `/dashboard/notifications` (in sidebar) | Tab UI (All/Unread/Read), Zustand unread store, action routing |
+| `features/products/` | **REFERENCE** | — | Complete CRUD scaffold with server-side filters, HydrationBoundary, TanStack Table columns, cell actions. Copy for rooms, pricing, properties |
+| `features/forms/` | **REFERENCE** | — | `multi-step-product-form` (wizard), `sheet-form-demo` (drawer overlay). Copy for create-booking wizard and quick-inquiry sheet |
+| `features/chat/` | **REFERENCE** | — | `messenger.tsx`, `message-bubble.tsx`, `conversation-list.tsx`. Base for **Task 5 — Omnichannel Inbox** |
+| `features/overview/` | **REFERENCE** | — | Metric card layout (Card + Badge + trend icon), chart skeletons, 4-chart dashboard. Copy for **Task 10 — BI dashboards** |
+| `features/elements/` | **REFERENCE** | — | Searchable icon browser (dev-only utility) |
+| `features/react-query-demo/` | **REFERENCE** | — | React Query + Suspense query factory pattern (educational; prefer products/ as reference) |
+
+### Corresponding app/ routes
+
+| App route | Status | Notes |
+|---|---|---|
+| `app/dashboard/users/` | **LIVE** | Active RUTA page |
+| `app/dashboard/kanban/` | REFERENCE | Standalone kanban demo; CRM uses `components/ui/kanban` directly |
+| `app/dashboard/notifications/` | **LIVE** | In sidebar nav under Account |
+| `app/dashboard/chat/` | REFERENCE | Messenger demo; Task 5 will replace with omnichannel inbox |
+| `app/dashboard/overview/` | REFERENCE | Stats demo with parallel route slots (@sales, @area_stats…) |
+| `app/dashboard/forms/` | REFERENCE | Form pattern showcase (basic / advanced / multi-step / sheet) |
+| `app/dashboard/elements/` | REFERENCE | Icon browser |
+
+### Reuse map: which reference to use per task
+
+| Task | Primary reference |
+|---|---|
+| Task 5 — Omnichannel Inbox | `features/chat/` (message-bubble, conversation-list) + `features/notifications/` (tab pattern) |
+| Task 8 — Ringostat (calls listing) | `features/users/` (DataTable pattern) |
+| Task 9 — Farmer Retention | `features/kanban/` (stage board) + `features/users/` (DataTable) |
+| Task 10 — BI Dashboards | `features/overview/` (chart layout + skeletons) |
+| Guest profiles CRUD | `features/users/` + `features/products/` (columns, cell-actions, server filters) |
+| Rooms / Pricing CRUD | `features/products/` (full CRUD scaffold) |
+| Create Booking wizard | `features/forms/multi-step-product-form` |
+| Quick Inquiry sheet | `features/forms/sheet-form-demo` |
+
+---
+
 ## Code Conventions
 
 - **Comments:** Ukrainian for business logic, English for technical

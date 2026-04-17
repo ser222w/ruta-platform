@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.3] — 2026-04-17 — Docs: UI reference patterns audit
+
+### Added
+- **docs/architecture.md** — нова секція "UI Reference Patterns":
+  - Таблиця статусів для 9 директорій `src/features/` (LIVE vs REFERENCE, хто використовує)
+  - Таблиця статусів для 7 відповідних `app/dashboard/` маршрутів
+  - Reuse map: яку reference брати для Task 5 (Inbox), 8 (Ringostat), 9 (Farmer), 10 (BI),
+    Guest CRUD, Rooms CRUD, Create Booking wizard, Quick Inquiry sheet
+  - Правило: `src/features/` **не видаляти** — це scaffold для нових фіч
+
+### Context
+- Аудит показав що `features/` — це готові UI-шаблони, НЕ legacy мотлох:
+  - `users/` та `kanban/` та `notifications/` — **активно використовуються** RUTA сторінками
+  - `products/` та `forms/` — повні CRUD scaffolds для копіювання
+  - `chat/` — основа для Task 5 (Inbox)
+  - `overview/` — основа для Task 10 (BI)
+
+---
+
 ## [0.7.2] — 2026-04-17 — Docs: full spec extraction + best practices audit
 
 ### Added
