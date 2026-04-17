@@ -2,6 +2,7 @@ import KBar from '@/components/kbar';
 import AppSidebar from '@/components/layout/app-sidebar';
 import Header from '@/components/layout/header';
 import { InfoSidebar } from '@/components/layout/info-sidebar';
+import { AppEventsProvider } from '@/components/shared/app-events-provider';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
@@ -34,6 +35,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <InfoSidebar side='right' />
         </InfobarProvider>
       </SidebarProvider>
+      {/* Real-time events: SSE + screen pop */}
+      <AppEventsProvider />
     </KBar>
   );
 }

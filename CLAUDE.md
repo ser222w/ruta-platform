@@ -76,7 +76,7 @@ Sales + operations + omnichannel + telephony + payments + BI. Not a CRM.
 
 ## CURRENT STATUS
 
-**Phase:** Chat C Phase 0+1 complete. Next: TASK 8 — Ringostat webhook OR TASK 5 Phase 2 (Meta).
+**Phase:** Chat B complete. Next: TASK 5 Phase 2 (Meta) OR TASK 9 (Farmer Retention).
 
 | Task | Status |
 |---|---|
@@ -88,11 +88,11 @@ Sales + operations + omnichannel + telephony + payments + BI. Not a CRM.
 | TASK 7: Chat A — Acquisition Flow | ✅ 6/6 e2e |
 | TASK 5: Omnichannel Inbox | ✅ Phase 0+1 — 2026-04-17 (TG/Email/SMS/e-chat + UI + SSE) |
 | TASK 5 Phase 2: Meta (FB/IG/WA) | 🟡 planned separately |
-| TASK 8: Ringostat webhook | 🟡 planned |
+| TASK 8: Ringostat webhook | ✅ Chat B 2026-04-17 — 6/6 e2e |
 | TASK 9: Farmer Retention | 🟡 planned |
 | TASK 10: BI Dashboards | ✅ Chat D 2026-04-17 |
 
-**Last commit:** `feat(phase-1): omnichannel inbox — channel-agnostic core + TG/Email/SMS/e-chat adapters + 3-col UI + SSE`
+**Last commit:** `feat: ringostat webhook — auto-inquiry + SSE screen pop`
 
 ---
 

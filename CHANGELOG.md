@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.8.0] — 2026-04-17 — Chat B: Ringostat Webhook + SSE Screen Pop
+
+### Added
+- **Ringostat webhook** `POST /api/webhooks/ringostat?event=call_start|call_end|missed`
+  - `call_start` (incoming) → auto-creates PhoneCall + Inquiry, SSE push до менеджера
+  - `call_end` → оновлює duration, recording URL, статус PhoneCall + Inquiry
+  - `missed` → PhoneCall(MISSED) + Inquiry з nextAction "Передзвонити"
+  - Idempotency: дублікати call_id ігноруються
+  - Auth: `Auth-Key` header (Ringostat API key)
+  - Пошук гостя за телефоном → LTV + кількість заїздів в SSE payload
+- **SSE endpoint** `GET /api/events` — real-time нотифікації менеджерів
+  - Auth via better-auth session
+  - Heartbeat кожні 25 сек
+  - Auto-reconnect на клієнті (5 сек)
+- **IncomingCallPopup** — screen pop у менеджера при вхідному дзвінку
+  - Fixed overlay (top-right), auto-dismiss 30 сек
+  - Показує ім'я гостя, телефон, кількість заїздів, LTV, останній готель
+  - "Відкрити картку" → `/dashboard/inquiries/[id]`
+- **Zustand call store** `src/lib/stores/call-store.ts`
+- **useAppEvents hook** `src/lib/hooks/use-app-events.ts` — підключений в dashboard layout
+- **AppEventsProvider** — client wrapper для SSE + popup в server layout
+
+### Technical
+- `prisma/schema/calls.prisma` — повний rewrite PhoneCall: 20+ полів (callerPhone, calleePhone, status, utmContent, utmTerm, isProper, isRepeated, landingPage тощо)
+- Migration: `20260417_task8_ringostat_phonecall`
+- `src/server/events.ts` — global EventEmitter singleton
+- `src/server/hono/webhooks/ringostat.ts` — Hono webhook handler
+- E2E tests: `tests/e2e/ringostat.spec.ts` — 6 тестів
+
+### ENV vars (додати в .env.local)
+```
+RINGOSTAT_AUTH_KEY=""      # Auth-Key з Ringostat Settings > Integrations > API
+RINGOSTAT_PROJECT_ID=""    # Project ID (108065)
+```
+
+### Ringostat UI конфігурація (3 webhooks)
+```
+POST https://app.ruta.cam/api/webhooks/ringostat?event=call_start  → "Before call" incoming
+POST https://app.ruta.cam/api/webhooks/ringostat?event=call_end    → "After call" incoming
+POST https://app.ruta.cam/api/webhooks/ringostat?event=missed      → "After call" missed
+Header: Auth-Key: EXepeznFltwOJTYuKDJvGSnnUBcJEcJC
+```
+
+### Verification
+- typecheck: 0 errors ✅
+- lint: 0 warnings ✅
+- curl webhook tests: call_start/duplicate/call_end/missed ✅
+- e2e tests: 6/6 ✅
+
+---
+
 ## [0.7.4] — 2026-04-17 — Fix: Acquisition Flow bugs
 
 ### Fixed

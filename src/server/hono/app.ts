@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import liqpayWebhook from './webhooks/liqpay';
+import ringostatWebhook from './webhooks/ringostat';
 import channelWebhooks from './webhooks/channels';
 
 const app = new Hono().basePath('/api');
@@ -14,6 +15,7 @@ app.get('/health', (c) => {
 
 // Webhooks
 app.route('/webhooks/liqpay', liqpayWebhook);
+app.route('/webhooks/ringostat', ringostatWebhook);
 // Omnichannel: /api/webhooks/telegram/:inboxId, /email/:inboxId, /echat/:inboxId, /meta
 app.route('/webhooks', channelWebhooks);
 
