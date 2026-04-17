@@ -65,6 +65,7 @@ model Inquiry {
   updatedAt   DateTime      @updatedAt
 
   tasks       Task[]
+  phoneCall   PhoneCall?
 
   @@index([status])
   @@index([guestId])

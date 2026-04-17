@@ -60,6 +60,9 @@ model PhoneCall {
   inquiryId   String?  @unique
   inquiry     Inquiry? @relation(fields: [inquiryId], references: [id])
 
+  transcription CallTranscription?
+  grading       CallGrading?
+
   calledAt    DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
