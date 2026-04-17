@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.1] — 2026-04-17 — Docs restructure + E2E fixes
+
+### Changed
+- **CLAUDE.md** — refactored from 797 → 97 lines; navigation-only with links to focused docs
+- **docs/** — reorganized into `architecture.md`, `business-rules.md`, `ops.md`, `ux-principles.md`
+- **docs/adr/** — ADR-001 (stack), ADR-002 (no-folio), ADR-003 (better-auth)
+- **docs/tasks/** — moved all PROMPT_CHAT_* and PHASE_1 prompts here
+- **docs/spec/** — moved all RUTA_CRM_v2_* specs and _DEPLOY_AND_TEST_BLOCK here
+
+### Fixed
+- **E2E tests** — auth path `/sign-in` → `/auth/sign-in`, selector fixes, strict mode violations
+- **Seed** — password hashing changed from Node.js `crypto.scrypt` to `@better-auth/utils/password`
+- **prisma.config.ts** — now loads `.env.local` before `.env` for Prisma CLI commands
+- **helpers.ts** — email/password field selectors fixed for Better-Auth UI
+
+### Infra
+- **GitHub webhook** added (hook ID: 606776039) → Coolify auto-deploy on `git push`
+- **Local dev** documented: `docker compose up -d` + `npm run dev`
+
+### Verification
+- unit tests: 37/37 ✅
+- e2e tests: 6/6 ✅
+
+---
+
 ## [0.7.0] — 2026-04-17 — Chat A: Acquisition Flow
 
 ### Added
