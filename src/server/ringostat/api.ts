@@ -174,23 +174,33 @@ export async function getProjectEmployees(): Promise<RingostatEmployee[]> {
 
   if (!res.ok) throw new Error(`Ringostat API error: ${res.status}`);
 
+  // result is an object keyed by staffId, not an array
   const data = (await res.json()) as {
-    result?: Array<{
-      id: string;
-      fio?: string;
-      email?: string;
-      phone?: string;
-      sip?: string;
-      department?: string;
-    }>;
+    result?: Record<
+      string,
+      {
+        id: number; // internal Ringostat employee ID
+        staffId: number;
+        fio?: string;
+        email?: string;
+        phone?: string;
+        extensionNumber?: string; // SIP extension (e.g. "101")
+        departments?: number[];
+        directions?: {
+          main?: Array<{ direction: string; type: string }>;
+        };
+      }
+    >;
   };
 
-  return (data.result ?? []).map((e) => ({
-    id: e.id,
-    name: e.fio ?? '',
+  if (!data.result || typeof data.result !== 'object') return [];
+
+  return Object.values(data.result).map((e) => ({
+    id: String(e.staffId),
+    name: e.fio?.trim() ?? '',
     email: e.email,
     phone: e.phone,
-    sipAccount: e.sip,
-    department: e.department
+    sipAccount: e.extensionNumber, // SIP extension number
+    department: e.departments?.[0]?.toString() // first department ID as string
   }));
 }
