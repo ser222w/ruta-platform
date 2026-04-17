@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.4] — 2026-04-17 — Fix: Acquisition Flow bugs
+
+### Fixed
+- **Bookings list page** `/dashboard/bookings` — реалізована (була "coming soon"); таблиця з search, pagination, stage badges
+- **"Створити замовлення" діалог** — Input для ID готелю замінено на Select з реальними готелями (`trpc.property.list`); дати та готель тепер pre-fill з inquiry
+- **"Нове звернення" форма** — додано вибір готелю (необов'язково)
+
+### Added
+- `src/server/trpc/routers/property.ts` — новий router: `property.list` (id, name, slug, bookingPrefix)
+- `tests/e2e/acquisition_full.spec.ts` — e2e тест повного флоу: inquiry → booking (з вибором готелю) → payment link → portal URL
+
+### Verification
+- typecheck: 0 errors ✅
+- e2e acquisition: 8/8 ✅ (6 оригінальні + 2 нові)
+
+---
+
 ## [0.11.0] — 2026-04-17 — Chat C Phase 0+1: Omnichannel Inbox
 
 ### Added
