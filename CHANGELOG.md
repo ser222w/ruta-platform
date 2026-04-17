@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.11.0] — 2026-04-17 — Chat C Phase 0+1: Omnichannel Inbox
+
+### Added
+- `/dashboard/inbox` — 3-column UI: conversation list + message thread + guest context panel
+- Channel-agnostic `ChannelAdapter` interface + registry pattern for zero-coupling channel ingest/outbound
+- Adapters: **Telegram** (grammy, webhook per Inbox), **Email** (nodemailer SMTP + Postmark inbound), **SMS** (TurboSMS REST), **e-chat** (Viber + TG Personal), **Fake** (E2E tests)
+- `processInboundWebhook()` pipeline: idempotency (SHA256 event ID) → upsert guest → findOrCreate conversation → create message → pg_notify
+- SSE endpoint `/api/sse` → `useInboxSSE()` hook for real-time updates via TanStack Query invalidation
+- `/dashboard/settings/inboxes` — admin CRUD UI for inbox management + webhook URL display
+- tRPC `inbox` router: 10 procedures (listInboxes, createInbox, listConversations, getConversation, getMessages, sendMessage, assignConversation, resolveConversation, markRead, getCounts)
+- E2E tests: `inbox.core.spec.ts` (5 tests, FakeAdapter), `inbox.phase1.spec.ts` (TG round-trip, email threading, SMS outbound)
+- Meta stubs: `/api/webhooks/meta` GET+POST return 200 — ready for Phase 2
+
+### Prisma schema changes
+- New models: `Inbox`, `WebhookEvent` (idempotency)
+- Extended: `Conversation` (+inboxId, +channel, +externalThreadId, +unreadByManager), `Message` (+inboxId, +externalId, +attachments, +sentById), `GuestProfile` (+externalIds Json)
+- New enum: `ChannelType` (TELEGRAM, EMAIL, SMS, ECHAT_VIBER, ECHAT_TG_PERSONAL, FACEBOOK, INSTAGRAM, WHATSAPP, UNKNOWN)
+
+### Pending (ops)
+- `prisma migrate dev` — schema not yet applied to DB
+- Set Telegram webhook: `POST https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://ruta.cam/api/webhooks/telegram/{inboxId}`
+- Add `.env.local` credentials: TELEGRAM_DEFAULT_BOT_TOKEN, GMAIL_ADDRESS, GMAIL_APP_PASSWORD, TURBOSMS_API_TOKEN, ECHAT_API_KEY, META_WEBHOOK_VERIFY_TOKEN
+
+---
+
 ## [0.10.0] — 2026-04-17 — Chat D: BI Dashboards
 
 ### Added
