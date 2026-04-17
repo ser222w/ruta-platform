@@ -76,7 +76,7 @@ Sales + operations + omnichannel + telephony + payments + BI. Not a CRM.
 
 ## CURRENT STATUS
 
-**Phase:** Chat A complete. Next: TASK 5 — Omnichannel Inbox.
+**Phase:** Chat A + Chat D complete. Next: TASK 5 — Omnichannel Inbox.
 
 | Task | Status |
 |---|---|
@@ -89,7 +89,7 @@ Sales + operations + omnichannel + telephony + payments + BI. Not a CRM.
 | TASK 5: Omnichannel Inbox | 🔴 next |
 | TASK 8: Ringostat webhook | 🟡 planned |
 | TASK 9: Farmer Retention | 🟡 planned |
-| TASK 10: BI Dashboards | 🟡 planned |
+| TASK 10: BI Dashboards | ✅ Chat D 2026-04-17 |
 
 **Last commit:** `fix: e2e tests — correct auth path, seed uses better-auth scrypt, fix selectors`
 

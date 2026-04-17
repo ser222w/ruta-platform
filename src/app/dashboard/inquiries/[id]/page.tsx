@@ -42,6 +42,7 @@ export default function InquiryDetailPage({ params }: PageProps) {
   const { data: inquiry, isLoading, refetch } = trpc.inquiry.getById.useQuery({ id });
 
   // Список готелів для форми конвертації
+  const { data: properties } = trpc.property.list.useQuery();
   const [convertForm, setConvertForm] = useState({
     propertyId: '',
     checkInDate: '',
@@ -135,7 +136,23 @@ export default function InquiryDetailPage({ params }: PageProps) {
         <div className='flex items-center gap-2'>
           <Badge>{statusLabels[inquiry.status] ?? inquiry.status}</Badge>
           {inquiry.status !== 'CONVERTED' && inquiry.status !== 'ARCHIVED' && (
-            <Button onClick={() => setShowConvert(true)}>Створити замовлення</Button>
+            <Button
+              onClick={() => {
+                setConvertForm({
+                  propertyId: inquiry.property?.id ?? '',
+                  checkInDate: inquiry.checkInDate
+                    ? new Date(inquiry.checkInDate).toISOString().split('T')[0]
+                    : '',
+                  checkOutDate: inquiry.checkOutDate
+                    ? new Date(inquiry.checkOutDate).toISOString().split('T')[0]
+                    : '',
+                  adultsCount: inquiry.adultsCount ?? 2
+                });
+                setShowConvert(true);
+              }}
+            >
+              Створити замовлення
+            </Button>
           )}
           {inquiry.booking && (
             <Link href={`/dashboard/bookings/${inquiry.booking.id}`}>
@@ -265,16 +282,21 @@ export default function InquiryDetailPage({ params }: PageProps) {
           <div className='space-y-4 py-2'>
             <div className='space-y-1.5'>
               <Label>Готель</Label>
-              <Input
-                placeholder='ID готелю (тимчасово)'
+              <Select
                 value={convertForm.propertyId}
-                onChange={(e) => setConvertForm((p) => ({ ...p, propertyId: e.target.value }))}
-              />
-              <p className='text-muted-foreground text-xs'>
-                {inquiry.property?.name
-                  ? `Пропозиція: ${inquiry.property.id}`
-                  : 'Введіть ID готелю'}
-              </p>
+                onValueChange={(v) => setConvertForm((p) => ({ ...p, propertyId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder='Оберіть готель' />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties?.map((prop) => (
+                    <SelectItem key={prop.id} value={prop.id}>
+                      {prop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className='grid grid-cols-2 gap-3'>
               <div className='space-y-1.5'>

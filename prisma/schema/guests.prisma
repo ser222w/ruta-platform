@@ -79,6 +79,10 @@ model GuestProfile {
   utmMedium        String?
   utmCampaign      String?
 
+  // Omnichannel external IDs — unified lookup across adapters
+  // Example: { "telegram": "123456789", "email": "guest@example.com", "phone": "+380671234567", "echat_viber": "..." }
+  externalIds      Json?
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 

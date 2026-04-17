@@ -1,66 +1,156 @@
-// Omnichannel: Conversation + Message
-// Канали: Telegram, WhatsApp, Viber, Instagram, Email, Phone
+// =============================================================
+// OMNICHANNEL INBOX — Chat C v3
+// Channel-agnostic core + Phase 1 adapters (TG, Email, SMS, e-chat)
+// Phase 2 (Meta: FB/IG/WA) — stubs only, implement separately
+// =============================================================
 
 enum ChannelType {
   TELEGRAM
-  WHATSAPP
-  VIBER
-  INSTAGRAM
   EMAIL
-  PHONE
+  SMS
+  ECHAT_VIBER
+  ECHAT_TG_PERSONAL
+  // Phase 2 — Meta family (stubs, not implemented yet)
+  FACEBOOK
+  INSTAGRAM
+  WHATSAPP
+  UNKNOWN
 }
 
 enum ConversationStatus {
   OPEN
-  PENDING   // очікує відповіді менеджера
+  PENDING    // waiting for manager reply
   RESOLVED
   SPAM
 }
 
 enum MessageDirection {
-  INBOUND   // від гостя
-  OUTBOUND  // від менеджера
+  INBOUND    // from guest
+  OUTBOUND   // from manager
 }
 
+// =============================================================
+// INBOX — one logical connection (one TG bot, one email address, etc.)
+// Adding a new hotel = INSERT INTO Inbox with brandId, not code change
+// =============================================================
+model Inbox {
+  id          String      @id @default(cuid())
+  channelType ChannelType
+  name        String
+  // Link to property (brand). null = shared/unassigned
+  brandId     String?
+  brand       Property?   @relation(fields: [brandId], references: [id])
+  // Per-adapter config JSON (botToken, apiKey, fromAddress, etc.)
+  config      Json        @default("{}")
+  // External identifier: TG bot_id, email address, phone number, page_id
+  externalId  String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  conversations  Conversation[]
+  webhookEvents  WebhookEvent[]
+
+  @@unique([channelType, externalId])
+  @@index([brandId])
+  @@index([channelType, isActive])
+}
+
+// =============================================================
+// CONVERSATION — one thread with a guest on one channel
+// =============================================================
 model Conversation {
-  id         String             @id @default(cuid())
-  channel    ChannelType
-  status     ConversationStatus @default(OPEN)
-  guestId    String?
-  bookingId  String?
-  assignedTo String?            // userId
-  externalId String?            // chat_id / thread_id from channel
-  lastMessageAt DateTime?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  id               String             @id @default(cuid())
+  inboxId          String
+  inbox            Inbox              @relation(fields: [inboxId], references: [id])
+  // Derived from inbox for quick filtering
+  channel          ChannelType
+  status           ConversationStatus @default(OPEN)
+  guestId          String?
+  // Thread ID in the external channel (TG chat_id, email root Message-ID, phone)
+  externalThreadId String?
+  // Unread flag for manager
+  unreadByManager  Boolean            @default(true)
+  // Assigned manager
+  assignedToId     String?
+  assignedTo       User?              @relation("conversationAssignee", fields: [assignedToId], references: [id])
+  // Linked booking (optional, set manually or by guest lookup)
+  bookingId        String?
+  lastMessageAt    DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  messages Message[]
+  messages  Message[]
+  inquiries Inquiry[]
+
+  @@unique([inboxId, externalThreadId])
+  @@index([channel, status])
+  @@index([guestId])
+  @@index([assignedToId])
+  @@index([lastMessageAt(sort: Desc)])
 }
 
+// =============================================================
+// MESSAGE — one message in a conversation
+// =============================================================
 model Message {
-  id             String           @id @default(cuid())
-  conversationId String
-  direction      MessageDirection
-  body           String           @db.Text
-  mediaUrl       String?
-  externalId     String?          // message_id from channel
-  isRead         Boolean          @default(false)
-  sentAt         DateTime         @default(now())
+  id               String           @id @default(cuid())
+  conversationId   String
+  conversation     Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inboxId          String
+  direction        MessageDirection
+  // Main text content (was body in old schema — renamed for consistency)
+  content          String           @db.Text
+  // External message ID from channel (for idempotency)
+  externalId       String?
+  // Raw channel payload (for debug)
+  externalMetadata Json?
+  // Attachments: [{ url, mime, name, size }]
+  attachments      Json?
+  isRead           Boolean          @default(false)
+  // Manager who sent (OUTBOUND only)
+  sentById         String?
+  sentBy           User?            @relation("messageSender", fields: [sentById], references: [id])
+  sentAt           DateTime         @default(now())
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@unique([inboxId, externalId])
+  @@index([conversationId, sentAt(sort: Desc)])
 }
 
-// Quota архітектура: channel × month × hotel × room_type
+// =============================================================
+// WEBHOOK EVENT — idempotency log for all inbound webhooks
+// =============================================================
+model WebhookEvent {
+  // Deterministic hash: sha256(inboxId + externalMessageId)
+  id         String      @id
+  receivedAt DateTime    @default(now())
+  inboxId    String?
+  inbox      Inbox?      @relation(fields: [inboxId], references: [id])
+  channel    ChannelType
+  eventType  String      // "new_message" | "status_update" | "delivery_receipt"
+  payload    Json
+  processed  Boolean     @default(false)
+  error      String?
+  attempts   Int         @default(0)
+
+  @@index([processed, receivedAt])
+  @@index([inboxId])
+}
+
+// =============================================================
+// CHANNEL QUOTA — channel × month × hotel × room_type
+// (unchanged from original schema)
+// =============================================================
 model ChannelQuota {
-  id             String      @id @default(cuid())
+  id             String    @id @default(cuid())
   propertyId     String
-  roomCategoryId String?     // null = всі категорії
-  channel        String      // "booking.com", "direct", "instagram", etc.
-  month          Int         // 1-12
+  roomCategoryId String?
+  channel        String    // "booking.com", "direct", "instagram", etc.
+  month          Int       // 1-12
   year           Int
-  quotaPct       Int         @default(100)  // % від номерів для цього каналу
-  quotaRooms     Int?        // абсолютне число (override)
-  createdAt      DateTime    @default(now())
+  quotaPct       Int       @default(100)
+  quotaRooms     Int?
+  createdAt      DateTime  @default(now())
 
   @@unique([propertyId, roomCategoryId, channel, month, year])
 }

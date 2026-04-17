@@ -33,6 +33,9 @@ import type { InquirySource } from '@prisma/client';
 export default function TodayPage() {
   const router = useRouter();
   const [showNewInquiry, setShowNewInquiry] = useState(false);
+  const { data: properties } = trpc.property.list.useQuery();
+  const { data: eod } = trpc.dashboard.eodProgress.useQuery();
+  const { data: funnel } = trpc.dashboard.conversionFunnel.useQuery();
 
   // Дані черги
   const {
@@ -68,15 +71,18 @@ export default function TodayPage() {
     contactPhone: string;
     contactName: string;
     source: InquirySource;
+    propertyId: string;
   }>({
     contactPhone: '',
     contactName: '',
-    source: 'MANUAL'
+    source: 'MANUAL',
+    propertyId: ''
   });
 
   const handleCreateInquiry = () => {
     createInquiry.mutate({
       ...formData,
+      propertyId: formData.propertyId || undefined,
       adultsCount: 2
     });
   };
@@ -89,8 +95,6 @@ export default function TodayPage() {
     },
     onError: (e) => toast.error(e.message)
   });
-
-  const isLoading = tasksLoading || inquiriesLoading;
 
   // EOD прогрес: зелений якщо 0 нових + 0 прострочених
   const overdueCount = taskQueue?.overdue.length ?? 0;
@@ -110,7 +114,7 @@ export default function TodayPage() {
         <Button onClick={() => setShowNewInquiry(true)}>+ Нове звернення</Button>
       </div>
 
-      {/* EOD Mission */}
+      {/* EOD Mission Banner */}
       <Card className={eodDone ? 'border-green-500' : 'border-orange-400'}>
         <CardContent className='py-3 px-4 flex items-center gap-4'>
           <span className={`text-2xl font-bold ${eodDone ? 'text-green-600' : 'text-orange-500'}`}>
@@ -128,6 +132,70 @@ export default function TodayPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* EOD Progress + Funnel widgets */}
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        {/* EOD Detailed Progress */}
+        {eod && (
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base'>Завершення дня</CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <EodRow label='Необроблені звернення' count={eod.unprocessedInquiries} />
+              <EodRow label='Прострочені задачі' count={eod.overdueTasks} />
+              {(() => {
+                const total = eod.unprocessedInquiries + eod.overdueTasks;
+                const pct =
+                  total === 0
+                    ? 100
+                    : Math.max(10, Math.round((1 - total / Math.max(total, 10)) * 100));
+                return (
+                  <div className='pt-1'>
+                    <div className='h-2 bg-muted rounded-full overflow-hidden'>
+                      <div
+                        className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-500' : 'bg-orange-400'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className='text-xs text-muted-foreground mt-1 text-right'>
+                      {pct === 100 ? '✅ До нуля!' : `${pct}% до нуля`}
+                    </p>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Конверсійна воронка (місяць) */}
+        {funnel && funnel.length > 0 && (
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base'>Воронка — поточний місяць</CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-1'>
+              {funnel.map((stage, i) => {
+                const prev = i > 0 ? funnel[i - 1]!.count : stage.count;
+                const conv = i > 0 && prev > 0 ? Math.round((stage.count / prev) * 100) : null;
+                return (
+                  <div key={stage.stage}>
+                    <div className='flex items-center justify-between text-sm py-0.5'>
+                      <span className='text-muted-foreground'>{stage.stage}</span>
+                      <span className='font-semibold'>{stage.count}</span>
+                    </div>
+                    {conv !== null && (
+                      <p className='text-xs text-muted-foreground text-right leading-none mb-1'>
+                        ↓ {conv}%
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* Нові звернення */}
@@ -246,6 +314,24 @@ export default function TodayPage() {
               />
             </div>
             <div className='space-y-1.5'>
+              <Label>Готель</Label>
+              <Select
+                value={formData.propertyId}
+                onValueChange={(v) => setFormData((p) => ({ ...p, propertyId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Оберіть готель (необов'язково)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties?.map((prop) => (
+                    <SelectItem key={prop.id} value={prop.id}>
+                      {prop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='space-y-1.5'>
               <Label>Джерело</Label>
               <Select
                 value={formData.source}
@@ -282,6 +368,17 @@ export default function TodayPage() {
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
+
+function EodRow({ label, count }: { label: string; count: number }) {
+  return (
+    <div className='flex items-center justify-between text-sm'>
+      <span className='text-muted-foreground'>{label}</span>
+      <span className={`font-medium ${count > 0 ? 'text-orange-500' : 'text-green-600'}`}>
+        {count > 0 ? `⚠ ${count}` : '✅ 0'}
+      </span>
+    </div>
+  );
+}
 
 interface TaskData {
   id: string;

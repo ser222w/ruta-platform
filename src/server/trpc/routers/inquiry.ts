@@ -293,7 +293,7 @@ export const inquiryRouter = router({
               code: 'INTERNAL_SERVER_ERROR',
               message: 'Не вдалося згенерувати номер'
             });
-        } while (true);
+        } while (attempts <= 10);
 
         // Створюємо Booking
         const booking = await tx.booking.create({

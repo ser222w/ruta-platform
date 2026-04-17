@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0] — 2026-04-17 — Chat D: BI Dashboards
+
+### Added
+- `/planning`: KPI cards (Revenue, ADR, RevPAR, Occupancy, ALOS) + 12-month revenue trend chart + channel mix donut + manager performance table
+- `/reports`: conversion funnel chart (6 months, bar) + loss reasons donut + monthly funnel table with stage conversion rates
+- `/payments`: overdue tab (з днями прострочення + кнопка "Нагадати") + upcoming (30 днів) + all payments register with pagination
+- `/today`: EOD Progress widget (необроблені звернення + прострочені задачі + progress bar) + conversion funnel widget (поточний місяць)
+- Manager performance table (ADMIN/DIRECTOR/REVENUE_MANAGER): звернення, пропозиції, оплати, конверсія, revenue
+
+### Technical
+- New: `src/components/charts/` — AreaChart, BarChart, DonutChart, MetricCard (Recharts wrappers, no @tremor/react)
+- New: `src/server/trpc/routers/dashboard.ts` — 10 procedures: planningKpis, revenueTrend, channelMix, managerStats, overduePayments, upcomingPayments, allPayments, conversionFunnel, lossReasons, monthlyFunnel, eodProgress
+- `src/lib/utils.ts` — додано formatCurrency (UAH), formatPercent, formatNights
+- RBAC: /planning restricted to ADMIN/DIRECTOR/REVENUE_MANAGER via tRPC FORBIDDEN
+- Payments RBAC: CLOSER/FARMER бачать тільки свої платежі; ADMIN/DIRECTOR — всі
+
+---
+
 ## [0.7.3] — 2026-04-17 — Docs: UI reference patterns audit
 
 ### Added

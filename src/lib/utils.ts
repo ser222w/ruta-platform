@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('uk-UA', {
+    style: 'currency',
+    currency: 'UAH',
+    maximumFractionDigits: 0
+  }).format(amount);
+
+export const formatPercent = (value: number) => `${Math.round(value)}%`;
+
+export const formatNights = (n: number) => `${n} ${n === 1 ? 'ніч' : n < 5 ? 'ночі' : 'ночей'}`;
+
 export function formatBytes(
   bytes: number,
   opts: {

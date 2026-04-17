@@ -19,11 +19,14 @@ model User {
 
   sessions        Session[]
   accounts        Account[]
-  managedBookings Booking[]    @relation("closer")
-  farmedBookings  Booking[]    @relation("farmer")
+  managedBookings Booking[]      @relation("closer")
+  farmedBookings  Booking[]      @relation("farmer")
   activities      Activity[]
-  assignedInquiries Inquiry[]  @relation("inquiryAssignee")
-  assignedTasks     Task[]     @relation("taskAssignee")
+  assignedInquiries Inquiry[]    @relation("inquiryAssignee")
+  assignedTasks     Task[]       @relation("taskAssignee")
+  // Omnichannel inbox
+  assignedConversations Conversation[] @relation("conversationAssignee")
+  sentMessages          Message[]      @relation("messageSender")
 }
 
 model Session {
