@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.7.2] — 2026-04-17 — Docs: full spec extraction + best practices audit
+
+### Added
+- **docs/wireframes.md** — 15 ASCII-екранів з WIREFRAMES spec: Today, Inbox (3-col),
+  OrderCard (5 tabs + context panel), Calendar multi-property, Payment Register,
+  Proposal page (/p/[token]), Guest Portal ×3 (pre/post/stay), Retention dashboard,
+  Wrap-up form, Cancellation dialog, Command Palette (⌘K), EOD widget, Sidebar
+- **docs/data-model.md** — advanced entities not in architecture.md:
+  GuestRelation, OrderCompanion, Payer (individual + юрособа/ЄДРПОУ/IBAN),
+  Touchpoint, RetentionCampaign + CampaignDispatch, AuditLog (Prisma schemas
+  + indexes); encryption strategy (AES-256-GCM fields + masking rules);
+  birthday automation cron (09:00, 3 templates); Farmer T+0→T+180 full cycle
+- **docs/PRINCIPLES.md** — CEO manifesto copied from `/RUTA OS/PRINCIPLES.md`
+  into repo: P1-P10 product principles + D1-D10 dev principles з rationale та прикладами
+
+### Updated
+- **docs/ux-principles.md** — додано: 26 keyboard shortcuts (global/inbox/order/gmail-style),
+  accessibility checklist (WCAG AA, 15 items), success metrics (phase exit criteria +
+  30/60/90/180d business targets)
+- **CLAUDE.md** — додано посилання на wireframes.md, data-model.md, PRINCIPLES.md
+
+### Unchanged (originals preserved)
+- `docs/spec/RUTA_CRM_v2_5_MASTER.md`, `v2_6_ADDENDUM`, `v2_7_ADDENDUM`,
+  `RUTA_CRM_IMPLEMENTATION_v2_7.md` — залишились як повні джерела
+
+---
+
 ## [0.7.1] — 2026-04-17 — Docs restructure + E2E fixes
 
 ### Changed
