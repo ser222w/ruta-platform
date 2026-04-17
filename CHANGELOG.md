@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.7.0] — 2026-04-17 — Chat A: Acquisition Flow
+
+### Added
+- **Inquiry creation flow** — ручне та автоматичне звернення, поля: source, status, contactPhone/Name, propertyId, dates, assignedTo
+- **Booking creation** — конвертація Inquiry → Booking з генерацією номера `P{YY}{MM}{DD}{NNN}`
+- **Pricing engine (3-layer cascade)** — BAR × ночі → promo → cert → prepay по сегменту
+  - Split nightly pricing (різна ціна в будні/вихідні)
+  - Manager discount з блокером при > 10%
+  - Prepay: NEW=50%, FRIEND=30%, FAMILY=30%, VIP=20%
+- **PaymentSchedule auto-generation** — prepay + balance до заїзду
+- **Guest portal** `/portal/booking/[token]` — публічна mobile-first сторінка з LiqPay формою
+- **Portal token** — UUID, expires 72h, зберігається в Booking
+- **LiqPay webhook** `POST /api/webhooks/liqpay` — verifies signature, ідемпотентний, auto-assigns Farmer
+- **Auto-assign Farmer** при PREPAYMENT stage + Activity: HANDOFF
+- `/dashboard/today` — черга дня: нові звернення + задачі + EOD progress
+- `/dashboard/inquiries` — список з фільтрами (status, search, pagination)
+- `/dashboard/inquiries/[id]` — картка звернення + конвертація в замовлення
+- `/dashboard/bookings/[id]` — картка замовлення: 5 вкладок (Запит, Нарахування, Оплати, Задачі, Журнал)
+- Sidebar: "Сьогодні" та "Звернення" у Sales групі
+
+### Technical
+- New Prisma models: `Inquiry`, `Task` (+ migration `20260417_task7_inquiry_task`)
+- New tRPC routers: `inquiry`, `booking`, `task`
+- New services: `pricing/calculate-rate.ts`, `pricing/find-best-promo.ts`, `pricing/apply-certificate.ts`, `pricing/generate-schedule.ts`, `portal.ts`, `liqpay.ts`
+- New Hono webhook: `src/server/hono/webhooks/liqpay.ts`
+- E2E tests: `tests/e2e/acquisition.spec.ts` + `playwright.config.ts`
+- Unit tests: `tests/unit/pricing.test.ts` — 27 тестів pricing + LiqPay sig
+
+### Verification
+- typecheck: 0 errors ✅
+- unit tests: 27/27 ✅
+- build: production ✅
+
 ## [Unreleased — Task 5: Omnichannel Inbox]
 
 ## [0.6.0] — 2026-04-16 — Task 6: Schema Enrichment + Migration Fix

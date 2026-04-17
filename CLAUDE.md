@@ -640,8 +640,8 @@ CHECKOUT → auto-tasks → T+2 "Послідовний дзвінок" → Wrap
 
 ## CURRENT STATUS
 
-**Phase:** TASK 6 complete + DEPLOY live at app.ruta.cam
-**Last commit:** `d87a8b1 fix: remove npm warn text from task6 migration SQL`
+**Phase:** Chat A: Acquisition Flow complete
+**Last commit:** `feat: acquisition flow — inquiry→booking→pricing→payment portal`
 
 **Done:**
 - ✅ TASK 1: Foundation — Kiranism starter + Better-Auth + Prisma 6 + tRPC + CASL
@@ -650,6 +650,26 @@ CHECKOUT → auto-tasks → T+2 "Послідовний дзвінок" → Wrap
 - ✅ TASK 4: CRM Pipeline UI — kanban + table toggle, drag-to-stage, detail Sheet, audit trail
 - ✅ TASK 6: Schema enrichment — GuestSegment/Status enums, WishTag, BookingGuest, UtmTouch, Promotion, CronLog, SystemConfig, PortalPageView + portal.prisma
 - ✅ DEPLOY: `https://app.ruta.cam` live, Let's Encrypt SSL, DB: 38 tables, migrated + seeded
+- ✅ Chat A: Acquisition Flow — Inquiry→Booking→Pricing→PaymentPortal (2026-04-17)
+
+**New files (Chat A):**
+- `prisma/schema/inquiries.prisma` — Inquiry + Task models
+- `prisma/migrations/20260417_task7_inquiry_task/migration.sql`
+- `src/server/trpc/routers/inquiry.ts` — list/getById/create/updateStatus/convertToBooking
+- `src/server/trpc/routers/booking.ts` — list/getById/updateStage/calculatePrice/generatePaymentLink
+- `src/server/trpc/routers/task.ts` — getMyQueue/list/create/complete
+- `src/server/services/pricing/calculate-rate.ts` — 3-layer cascade
+- `src/server/services/pricing/find-best-promo.ts`
+- `src/server/services/pricing/apply-certificate.ts`
+- `src/server/services/pricing/generate-schedule.ts`
+- `src/server/services/portal.ts` — generatePortalToken, getBookingByPortalToken
+- `src/server/services/liqpay.ts` — generateLiqPayForm, verifySignature
+- `src/server/hono/webhooks/liqpay.ts` — webhook handler
+- `src/app/dashboard/today/page.tsx`
+- `src/app/dashboard/inquiries/page.tsx`
+- `src/app/dashboard/inquiries/[id]/page.tsx`
+- `src/app/dashboard/bookings/[id]/page.tsx` — 5 tabs
+- `src/app/portal/booking/[token]/page.tsx` — public portal
 
 **Infrastructure:**
 - Server: Hetzner CX33 `ruta-platform-nbg` (178.104.206.63)

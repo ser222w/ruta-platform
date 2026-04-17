@@ -5,10 +5,24 @@ export const navGroups: NavGroup[] = [
     label: 'Sales',
     items: [
       {
+        title: 'Сьогодні',
+        url: '/dashboard/today',
+        icon: 'dashboard',
+        isActive: true,
+        items: []
+      },
+      {
+        title: 'Звернення',
+        url: '/dashboard/inquiries',
+        icon: 'userPen',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'CRM',
         url: '/dashboard/crm',
         icon: 'kanban',
-        isActive: true,
+        isActive: false,
         items: []
       },
       {

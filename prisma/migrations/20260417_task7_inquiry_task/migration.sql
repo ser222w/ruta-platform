@@ -1,0 +1,113 @@
+-- Migration: Task 7 — Inquiry + Task models
+-- Chat A: Acquisition Flow
+
+-- CreateEnum
+CREATE TYPE "InquiryStatus" AS ENUM ('NEW', 'IN_PROGRESS', 'CONVERTED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "InquirySource" AS ENUM ('PHONE', 'TELEGRAM', 'WHATSAPP', 'INSTAGRAM', 'VIBER', 'SITE_FORM', 'MANUAL', 'RINGOSTAT');
+
+-- CreateEnum
+CREATE TYPE "TaskType" AS ENUM ('CALL_BACK', 'SEND_PROPOSAL', 'FOLLOW_UP', 'CONFIRM_ARRIVAL', 'POST_STAY_CALL', 'SEND_DOCS', 'PAYMENT_REMINDER', 'MANUAL');
+
+-- CreateEnum
+CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'DONE', 'CANCELLED');
+
+-- CreateTable: inquiries
+CREATE TABLE "inquiries" (
+    "id"            TEXT NOT NULL,
+    "status"        "InquiryStatus" NOT NULL DEFAULT 'NEW',
+    "source"        "InquirySource" NOT NULL DEFAULT 'MANUAL',
+    "guestId"       TEXT,
+    "assignedToId"  TEXT,
+    "propertyId"    TEXT,
+    "checkInDate"   DATE,
+    "checkOutDate"  DATE,
+    "adultsCount"   INTEGER NOT NULL DEFAULT 2,
+    "contactPhone"  TEXT,
+    "contactName"   TEXT,
+    "contactNote"   TEXT,
+    "nextAction"    TEXT,
+    "nextActionAt"  TIMESTAMP(3),
+    "bookingId"     TEXT,
+    "convertedAt"   TIMESTAMP(3),
+    "externalId"    TEXT,
+    "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "inquiries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable: tasks
+CREATE TABLE "tasks" (
+    "id"            TEXT NOT NULL,
+    "type"          "TaskType" NOT NULL DEFAULT 'MANUAL',
+    "title"         TEXT NOT NULL,
+    "description"   TEXT,
+    "status"        "TaskStatus" NOT NULL DEFAULT 'PENDING',
+    "assignedToId"  TEXT NOT NULL,
+    "bookingId"     TEXT,
+    "inquiryId"     TEXT,
+    "guestId"       TEXT,
+    "dueAt"         TIMESTAMP(3),
+    "doneAt"        TIMESTAMP(3),
+    "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex: inquiries
+CREATE UNIQUE INDEX "inquiries_bookingId_key" ON "inquiries"("bookingId");
+CREATE UNIQUE INDEX "inquiries_externalId_key" ON "inquiries"("externalId");
+CREATE INDEX "inquiries_status_idx" ON "inquiries"("status");
+CREATE INDEX "inquiries_guestId_idx" ON "inquiries"("guestId");
+CREATE INDEX "inquiries_assignedToId_idx" ON "inquiries"("assignedToId");
+CREATE INDEX "inquiries_propertyId_idx" ON "inquiries"("propertyId");
+CREATE INDEX "inquiries_createdAt_idx" ON "inquiries"("createdAt");
+
+-- CreateIndex: tasks
+CREATE INDEX "tasks_assignedToId_status_idx" ON "tasks"("assignedToId", "status");
+CREATE INDEX "tasks_bookingId_idx" ON "tasks"("bookingId");
+CREATE INDEX "tasks_dueAt_idx" ON "tasks"("dueAt");
+
+-- AddForeignKey: inquiries
+ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_guestId_fkey"
+    FOREIGN KEY ("guestId") REFERENCES "GuestProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_assignedToId_fkey"
+    FOREIGN KEY ("assignedToId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_propertyId_fkey"
+    FOREIGN KEY ("propertyId") REFERENCES "Property"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "inquiries" ADD CONSTRAINT "inquiries_bookingId_fkey"
+    FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey: tasks
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_assignedToId_fkey"
+    FOREIGN KEY ("assignedToId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_bookingId_fkey"
+    FOREIGN KEY ("bookingId") REFERENCES "Booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_inquiryId_fkey"
+    FOREIGN KEY ("inquiryId") REFERENCES "inquiries"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_guestId_fkey"
+    FOREIGN KEY ("guestId") REFERENCES "GuestProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Auto-update updatedAt trigger for inquiries
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW."updatedAt" = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER inquiries_updated_at BEFORE UPDATE ON "inquiries"
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER tasks_updated_at BEFORE UPDATE ON "tasks"
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
