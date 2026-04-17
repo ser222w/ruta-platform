@@ -99,3 +99,101 @@
 
 ### From shadcn (copy/npx)
 `Sheet`, `Command` (⌘K), `Tabs`, `Dialog`, `Skeleton`, `Toast/Sonner`, `Badge`, `Calendar`, `Combobox`
+
+---
+
+## Keyboard Shortcuts (26)
+
+### Global
+| Shortcut | Action |
+|---|---|
+| ⌘K | Command palette |
+| ⌘/ | Show all shortcuts (help overlay) |
+| ⌘\ | Toggle sidebar |
+| H | Сьогодні (Home) |
+| I | Звернення (Inbox) |
+| O | Замовлення |
+| G | Гості |
+| M | Календар |
+| R | Повторні візити (Retention) |
+| P | Звіти |
+| ⌘, | Налаштування |
+
+### Inbox (чати)
+| Shortcut | Action |
+|---|---|
+| J/K | Наступна / попередня розмова |
+| E | Архівувати |
+| A | Призначити мені |
+| ⇧A | Призначити комусь |
+| ⌘Enter | Надіслати відповідь |
+| ⌘J | AI suggest (Phase 5) |
+| Tab | Прийняти AI suggestion |
+| Esc | Відхилити AI |
+| C | Нова розмова |
+| / | Фокус пошуку |
+
+### Order card
+| Shortcut | Action |
+|---|---|
+| C | Нове замовлення |
+| ⌘S | Зберегти / Надіслати |
+| ⌘D | Дублювати |
+| ⌘⇧D | Видалити (з confirm) |
+| ⌘1–⌘5 | Перемикання між вкладками |
+| ⌘⇧→ | Наступна стадія |
+| ⌘⇧← | Попередня стадія |
+
+### Gmail-style navigation
+| Shortcut | Action |
+|---|---|
+| G → I | Go to Inbox |
+| G → O | Go to Orders |
+| G → M | Go to Calendar |
+| ? | Show shortcuts overlay |
+| ⌘⇧F | Global search |
+
+---
+
+## Accessibility Checklist (WCAG AA baseline)
+
+- ✅ WCAG AA contrast (Shadcn baseline)
+- ✅ Focus visible (`ring-2 ring-offset-2`)
+- ✅ Screen reader labels (`aria-label`, `aria-describedby`)
+- ✅ Form validation з inline errors
+- ✅ Keyboard navigation (tab order логічний)
+- ✅ Skip link "Перейти до основного контенту"
+- ✅ Semantic HTML (`<nav>`, `<main>`, `<button>`)
+- ✅ `prefers-reduced-motion` support
+- ✅ `lang` attribute (UA за замовчуванням)
+- ✅ Alt text для всіх зображень готелів
+- ✅ Form labels explicit (не placeholder-only)
+- ✅ Error announcements для screen readers
+- ✅ Focus trap у modals
+- ✅ Escape closes all modal/sheet
+- ✅ Touch targets ≥44×44px (mobile)
+
+---
+
+## Success Metrics
+
+### Phase 1 exit criteria
+- [ ] Менеджер працює цілий день без Odoo
+- [ ] Середній час відповіді <10 хв (baseline: 15 хв)
+- [ ] Час до пропозиції <3 хв (baseline: 5 хв)
+- [ ] Payment link delivery 99%+
+- [ ] 0 критичних bugs, <5 minor/тиждень
+
+### Phase 3 exit criteria
+- [ ] Всі 4 готелі працюють
+- [ ] Retention campaigns: 40% open, 10% reply
+- [ ] Conversion: 30%+
+
+### Business metrics (30/60/90/180 days)
+| Метрика | 30d | 60d | 90d | 180d |
+|---|---|---|---|---|
+| Avg response (чат) | <10 хв | <5 хв | <3 хв | <2 хв |
+| Час до пропозиції | <3 хв | <2 хв | <90 сек | <60 сек |
+| Payment conversion | 60% | 70% | 80% | 82% |
+| Direct booking share | 21% | 25% | 30% | 32% |
+| Repeat booking rate | +5% | +10% | +15% | +20% |

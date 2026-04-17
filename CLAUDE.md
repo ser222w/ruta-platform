@@ -20,7 +20,10 @@ Sales + operations + omnichannel + telephony + payments + BI. Not a CRM.
 | [docs/architecture.md](docs/architecture.md) | Stack, project structure, RBAC, pipeline stages, Prisma schema |
 | [docs/business-rules.md](docs/business-rules.md) | Pricing, loyalty, payments, user journeys, terminology |
 | [docs/ops.md](docs/ops.md) | Deploy workflow, env vars, local dev, test accounts, infra UUIDs |
-| [docs/ux-principles.md](docs/ux-principles.md) | P1-P20 UX principles, D1-D26 dev principles, component inventory |
+| [docs/ux-principles.md](docs/ux-principles.md) | P1-P20 UX principles, D1-D26 dev principles, shortcuts, accessibility, metrics |
+| [docs/PRINCIPLES.md](docs/PRINCIPLES.md) | CEO manifesto — P1-P10 product + D1-D10 dev principles with rationale (read before product decisions) |
+| [docs/wireframes.md](docs/wireframes.md) | 15 ASCII wireframes — Today, Inbox, OrderCard (5 tabs), Calendar, Portal, Wrap-up, ⌘K, EOD widget, Sidebar |
+| [docs/data-model.md](docs/data-model.md) | GuestRelation, OrderCompanion, Payer, Touchpoint, RetentionCampaign, AuditLog, birthday cron, Farmer T+0→T+180 |
 
 ### Specs & task prompts (read when needed)
 | Doc | When |
