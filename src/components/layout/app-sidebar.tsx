@@ -35,14 +35,21 @@ import { Icons } from '../icons';
 import { OrgSwitcher } from '../org-switcher';
 
 export default function AppSidebar({
-  user: sessionUser
+  user: sessionUser,
+  role
 }: {
   user: { name: string; email: string };
+  role: string;
 }) {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const router = useRouter();
-  const filteredGroups = useFilteredNavGroups(navGroups);
+
+  const roleFilteredGroups = navGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.roles || item.roles.includes(role))
+  }));
+  const filteredGroups = useFilteredNavGroups(roleFilteredGroups);
 
   const user = {
     fullName: sessionUser.name,

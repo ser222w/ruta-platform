@@ -20,6 +20,7 @@ export interface NavItem {
   isActive?: boolean;
   items?: NavItem[];
   access?: PermissionCheck;
+  roles?: string[];
 }
 
 export interface NavGroup {

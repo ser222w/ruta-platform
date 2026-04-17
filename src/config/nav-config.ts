@@ -75,14 +75,16 @@ export const navGroups: NavGroup[] = [
         url: '/dashboard/reports',
         icon: 'trendingUp',
         isActive: false,
-        items: []
+        items: [],
+        roles: ['ADMIN', 'DIRECTOR', 'REVENUE_MANAGER']
       },
       {
         title: 'Planning',
         url: '/dashboard/planning',
         icon: 'adjustments',
         isActive: false,
-        items: []
+        items: [],
+        roles: ['ADMIN', 'DIRECTOR', 'REVENUE_MANAGER']
       }
     ]
   },
