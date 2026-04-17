@@ -1,14 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { scrypt, randomBytes } from 'crypto';
-import { promisify } from 'util';
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('hex');
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString('hex')}.${salt}`;
-}
+// Better-Auth використовує @better-auth/utils/password (scrypt via @noble/hashes)
+// Формат: `salt:hash` (hex-encoded)
+import { hashPassword } from '@better-auth/utils/password';
 
 const prisma = new PrismaClient();
 

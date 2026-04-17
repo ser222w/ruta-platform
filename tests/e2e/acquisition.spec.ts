@@ -30,14 +30,8 @@ test.describe('Acquisition Flow', () => {
     await page.fill('[name=phone]', '+380671234567');
     await page.fill('[name=firstName]', 'Тест Гість');
 
-    // Зберігаємо
-    await page.click('button[type=submit], dialog button:has-text("Створити")');
-
-    // Або через data-testid
-    const createBtn = page.locator('dialog').getByRole('button', { name: 'Створити' });
-    if (await createBtn.isVisible()) {
-      await createBtn.click();
-    }
+    // Кнопка "Створити" в діалозі
+    await page.getByRole('dialog').getByRole('button', { name: 'Створити' }).click();
 
     // Редирект на сторінку звернення або список оновився
     await page.waitForURL(/\/dashboard\/(inquiries|today)/, { timeout: 10_000 });
@@ -74,11 +68,8 @@ test.describe('Acquisition Flow', () => {
     await loginAsCloser(page);
     await page.goto('/dashboard/today');
 
-    // Перевіряємо sidebar
-    await expect(page.locator('nav, [data-sidebar]')).toBeVisible();
-    await expect(page.locator('a[href="/dashboard/today"], a[href*="today"]')).toBeVisible();
-    await expect(
-      page.locator('a[href="/dashboard/inquiries"], a[href*="inquiries"]')
-    ).toBeVisible();
+    // Перевіряємо sidebar — посилання "Сьогодні" та "Звернення"
+    await expect(page.locator('a[href="/dashboard/today"]').first()).toBeVisible();
+    await expect(page.locator('a[href="/dashboard/inquiries"]').first()).toBeVisible();
   });
 });
