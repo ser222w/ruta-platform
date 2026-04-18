@@ -3,8 +3,12 @@
 ## [Unreleased]
 
 ### Added
-- TASK-13 (TASK-13)
-- `PhoneLink` component — клік по номеру телефону ініціює дзвінок через Ringostat Smart Phone у 8 місцях системи: заявки (список + картка), бронювання (список + картка), платежі, CRM (канбан + деталі), inbox. Замінено plain text та окрему кнопку "Дзвонити".
+- `PhoneLink` component — клік по номеру телефону ініціює дзвінок через Ringostat Smart Phone у 8 місцях: заявки (список + картка), бронювання (список + картка), платежі (overdue + upcoming), CRM (канбан + деталі), inbox. Server Action `callGuest()` → `callback/outward_call`.
+
+### Known issues
+- `outward_call` повертає 403 — потрібен дозвіл на Click-to-Call у Ringostat для auth-key `EXepeznFltwOJTYuKDJvGSnnUBcJEcJC` (Settings → API → Permissions)
+- `sipExtension` менеджерів порожній — потрібен запуск `POST /api/calls/sync-employees` після налаштування Ringostat employees з email `@ruta.cam`
+- `/dashboard/calls` — placeholder, UI не реалізовано (дані в `phone_calls` є)
 
 ## [0.8.2] — 2026-04-17 — Ringostat Smart Phone: contact sync, click-to-call, SIP status, outgoing calls
 

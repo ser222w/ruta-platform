@@ -7,6 +7,7 @@ import { taskRouter } from './routers/task';
 import { inboxRouter } from './routers/inbox';
 import { dashboardRouter } from './routers/dashboard';
 import { propertyRouter } from './routers/property';
+import { callsRouter } from './routers/calls';
 
 export const appRouter = router({
   health: healthRouter,
@@ -16,7 +17,8 @@ export const appRouter = router({
   task: taskRouter,
   inbox: inboxRouter,
   dashboard: dashboardRouter,
-  property: propertyRouter
+  property: propertyRouter,
+  calls: callsRouter
 });
 
 export type AppRouter = typeof appRouter;
