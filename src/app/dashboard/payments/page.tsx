@@ -287,15 +287,7 @@ function AllTab() {
                       '—'
                     )}
                   </td>
-                  <td className='py-3 px-4'>
-                    <div>
-                      <p className='font-medium'>{line.booking?.guest?.name ?? '—'}</p>
-                      <PhoneLink
-                        phone={line.booking?.guest?.phone}
-                        className='text-muted-foreground text-xs'
-                      />
-                    </div>
-                  </td>
+                  <td className='py-3 px-4'>{line.booking?.guest?.name ?? '—'}</td>
                   <td className='py-3 px-4 text-muted-foreground'>{line.label ?? '—'}</td>
                   <td className='py-3 px-4 text-right font-medium'>
                     {formatCurrency(line.amount)}
