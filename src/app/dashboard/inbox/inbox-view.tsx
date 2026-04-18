@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQueryState } from 'nuqs';
+import { useQueryState, parseAsString } from 'nuqs';
 import { trpc } from '@/lib/trpc';
 import { useInboxSSE } from '@/hooks/use-inbox-sse';
 import { ConversationList } from '@/components/inbox/conversation-list';
@@ -19,9 +19,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Filter tab type
-type TabFilter = 'unread' | 'mine' | 'all';
-
 const CHANNEL_OPTIONS = [
   { value: 'ALL', label: 'Всі канали' },
   { value: 'TELEGRAM', label: 'Telegram' },
@@ -38,8 +35,10 @@ export function InboxView() {
   // URL state for conversation
   const [conversationId, setConversationId] = useQueryState('conv');
 
+  // URL state for view dimension
+  const [view, setView] = useQueryState('view', parseAsString.withDefault('mine'));
+
   // Local filter state
-  const [tab, setTab] = useState<TabFilter>('unread');
   const [channel, setChannel] = useState('ALL');
   const [draft, setDraft] = useState('');
 
@@ -48,15 +47,37 @@ export function InboxView() {
     refetchInterval: 30_000
   });
 
+  // Unanswered count
+  const { data: unansweredData } = trpc.inbox.getUnansweredCount.useQuery(undefined, {
+    refetchInterval: 30_000
+  });
+  const unansweredCount = unansweredData?.count ?? 0;
+
   // Inboxes for brand filter
   const { data: inboxes } = trpc.inbox.listInboxes.useQuery();
 
+  // Build query params from view
+  const queryParams = (() => {
+    switch (view) {
+      case 'mine':
+        return { status: 'OPEN' as const, assignedToMe: true };
+      case 'open':
+        return { status: 'OPEN' as const };
+      case 'resolved':
+        return { status: 'RESOLVED' as const };
+      case 'spam':
+        return { status: 'SPAM' as const };
+      case 'unanswered':
+        return { status: 'OPEN' as const };
+      default:
+        return { status: 'OPEN' as const, assignedToMe: true };
+    }
+  })();
+
   // Conversation list
   const { data: convData, isLoading: listLoading } = trpc.inbox.listConversations.useQuery({
-    status: 'OPEN',
-    channels: channel !== 'ALL' ? [channel] : undefined,
-    assignedToMe: tab === 'mine',
-    unreadOnly: tab === 'unread'
+    ...queryParams,
+    channels: channel !== 'ALL' ? [channel] : undefined
   });
 
   const conversations = convData?.items ?? [];
@@ -134,27 +155,59 @@ export function InboxView() {
       <div className='flex min-h-0 flex-1'>
         {/* Column 1: Conversation list */}
         <div className='flex w-72 shrink-0 flex-col border-r'>
-          {/* Tabs */}
-          <div className='flex border-b'>
-            {(['unread', 'mine', 'all'] as TabFilter[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  'flex-1 py-2 text-xs font-medium transition-colors',
-                  tab === t
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {t === 'unread'
-                  ? `Нові${counts?.unread ? ` (${counts.unread})` : ''}`
-                  : t === 'mine'
-                    ? 'Мої'
-                    : 'Всі'}
-              </button>
-            ))}
-          </div>
+          {/* Left nav — ownership dimension */}
+          <nav className='flex flex-col gap-0.5 p-2' data-testid='inbox-nav'>
+            {/* ALARM: Без відповіді */}
+            <button
+              onClick={() => setView('unanswered')}
+              className={cn(
+                'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                view === 'unanswered'
+                  ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+                  : 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950'
+              )}
+            >
+              <span className='flex items-center gap-2'>
+                <span className='h-2 w-2 rounded-full bg-red-500 animate-pulse' />
+                Без відповіді
+              </span>
+              {unansweredCount > 0 && (
+                <span className='text-xs bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 dark:bg-red-900 dark:text-red-300'>
+                  {unansweredCount}
+                </span>
+              )}
+            </button>
+
+            <div className='my-1 h-px bg-border' />
+
+            <p className='px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+              Моя черга
+            </p>
+            <NavItem
+              view='mine'
+              label='Призначено мені'
+              icon='👤'
+              count={counts?.mine}
+              current={view}
+              setView={setView}
+            />
+
+            <div className='my-1 h-px bg-border' />
+
+            <p className='px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+              Всі відкриті
+            </p>
+            <NavItem
+              view='open'
+              label='Відкриті'
+              icon='💬'
+              count={counts?.total}
+              current={view}
+              setView={setView}
+            />
+            <NavItem view='resolved' label='Закриті' icon='✓' current={view} setView={setView} />
+            <NavItem view='spam' label='Спам' icon='🚫' current={view} setView={setView} />
+          </nav>
 
           {/* List */}
           <div className='min-h-0 flex-1'>
@@ -204,5 +257,43 @@ export function InboxView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function NavItem({
+  view: v,
+  label,
+  icon,
+  count,
+  current,
+  setView
+}: {
+  view: string;
+  label: string;
+  icon: string;
+  count?: number;
+  current: string;
+  setView: (v: string) => Promise<URLSearchParams>;
+}) {
+  return (
+    <button
+      onClick={() => setView(v)}
+      className={cn(
+        'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+        current === v
+          ? 'bg-accent text-accent-foreground font-medium'
+          : 'text-muted-foreground hover:bg-accent/50'
+      )}
+    >
+      <span className='flex items-center gap-2'>
+        <span>{icon}</span>
+        {label}
+      </span>
+      {count !== undefined && count > 0 && (
+        <span className='text-xs bg-muted text-muted-foreground rounded-full px-1.5 py-0.5'>
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
