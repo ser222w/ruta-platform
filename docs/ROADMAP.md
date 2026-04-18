@@ -12,8 +12,8 @@ next_cooldown: 2026-05-02
 
 | Item | Pillar | Size | Status | Tasks |
 |---|---|---|---|---|
-| TASK 5 Phase 2: Meta inbox (FB/IG/WA) | 1-direct | L | 🟡 planned | — |
-| TASK 9: Farmer Retention T+7/30/180 | 3-repeat | XL | 🔴 planned | — |
+| TASK 5 Phase 2: Meta inbox (FB/IG/WA) | 1-direct | L | 🟡 todo | TASK-6 |
+| TASK 9: Farmer Retention T+0→T+180 | 3-repeat | XL | 🟡 todo | TASK-11 |
 
 ## Next sprint (W18-W19)
 
@@ -24,13 +24,17 @@ next_cooldown: 2026-05-02
 
 ## Backlog depth (W20-W24)
 
-- Webflow → Next.js migration (rutapolyana.com)
-- Andorra entity setup integration
+- Docker healthcheck + `/api/health` endpoint (infra, quick win ~2h)
+- pre-merge CI fix: exclude Playwright specs from `vitest run` (maintenance, ~15min)
+- CQR 3.0 migration: DeepSeek → GPT-4.1-mini (conversion impact, 2-3 days)
+- Webflow → Next.js migration (rutapolyana.com) — MUST split before taking (XL)
 - Loyalty tier UI
+- Andorra entity setup integration (external dependency)
 
 ## Decisions pending
-- ADR для BullMQ vs pg-boss (Farmer queues)
-- ADR для Payload CMS vs Sanity
+<!-- Changed: BullMQ вже обрано у ADR-001 — видалено як "pending" -->
+- ADR для Payload CMS vs Sanity (для Webflow міграції)
+- Feature flags підхід: env vars vs Unleash
 
 ## Completed this period
 (заповнюється на cooldown days)
