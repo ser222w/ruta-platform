@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, type ReactNode } from 'react';
 import { trpc } from '@/lib/trpc';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -177,7 +178,7 @@ export default function BookingDetailPage({ params }: PageProps) {
                 {booking.guest ? (
                   <>
                     <InfoRow label="Ім'я" value={booking.guest.name} />
-                    <InfoRow label='Телефон' value={booking.guest.phone} />
+                    <InfoRow label='Телефон' value={<PhoneLink phone={booking.guest.phone} />} />
                     <InfoRow label='Email' value={booking.guest.email} />
                     <InfoRow label='Сегмент' value={booking.guest.loyaltyTier} />
                   </>
@@ -451,12 +452,12 @@ export default function BookingDetailPage({ params }: PageProps) {
 // Helpers
 // ─────────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
+function InfoRow({ label, value }: { label: string; value?: ReactNode }) {
+  if (value === null || value === undefined || value === '') return null;
   return (
     <div className='flex items-start gap-3'>
       <p className='text-muted-foreground text-xs w-20 shrink-0 pt-0.5'>{label}</p>
-      <p className='text-sm'>{value}</p>
+      <div className='text-sm'>{value}</div>
     </div>
   );
 }
