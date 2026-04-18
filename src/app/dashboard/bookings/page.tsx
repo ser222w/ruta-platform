@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import Link from 'next/link';
@@ -102,9 +103,10 @@ export default function BookingsPage() {
                   <td className='px-4 py-3 font-mono font-medium'>{booking.bookingNumber}</td>
                   <td className='px-4 py-3'>
                     <p className='font-medium'>{booking.guest?.name ?? '—'}</p>
-                    {booking.guest?.phone && (
-                      <p className='text-muted-foreground text-xs'>{booking.guest.phone}</p>
-                    )}
+                    <PhoneLink
+                      phone={booking.guest?.phone}
+                      className='text-muted-foreground text-xs'
+                    />
                   </td>
                   <td className='px-4 py-3 text-muted-foreground'>
                     {booking.property?.name ?? '—'}
