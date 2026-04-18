@@ -9,7 +9,8 @@ echo "════════════════════════�
 if [[ -f package.json ]]; then
   if grep -q '"test"' package.json 2>/dev/null; then
     if command -v bun &>/dev/null; then
-      bun test || { echo "🛑 Unit tests failed"; exit 1; }
+      # Explicit path to avoid picking up Playwright e2e spec files
+      bun test tests/unit/ || { echo "🛑 Unit tests failed"; exit 1; }
     else
       npm test || { echo "🛑 Unit tests failed"; exit 1; }
     fi

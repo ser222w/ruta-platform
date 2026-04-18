@@ -119,9 +119,15 @@ Automatic Coolify deploy + scripts/smoke.sh will run post-merge.
       gh label create "$PR_LABEL" --color "$COLOR" 2>/dev/null || true
     fi
 
-    gh pr edit --add-label "$PR_LABEL" 2>/dev/null && \
-      echo "✅ Applied label: $PR_LABEL" || \
-      echo "⚠️ Could not apply label (PR may be draft)"
+    # Use REST API to avoid gh pr edit GraphQL Projects deprecation warning
+    REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || echo "")
+    PR_NUM=$(gh pr view --json number --jq .number 2>/dev/null || echo "")
+    if [ -n "$REPO" ] && [ -n "$PR_NUM" ]; then
+      gh api "repos/$REPO/issues/$PR_NUM/labels" \
+        --method POST --field "labels[]=$PR_LABEL" >/dev/null 2>&1 && \
+        echo "✅ Applied label: $PR_LABEL" || \
+        echo "⚠️ Could not apply label"
+    fi
   fi
 
   echo ""
