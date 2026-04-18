@@ -29,6 +29,7 @@ export function PhoneLink({ phone, className }: PhoneLinkProps) {
 
   return (
     <button
+      type='button'
       onClick={handleClick}
       disabled={isPending}
       className={cn(

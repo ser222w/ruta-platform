@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -110,9 +111,10 @@ function OverdueTab() {
                   <td className='py-3 px-4'>
                     <div>
                       <p className='font-medium'>{line.booking?.guest?.name ?? '—'}</p>
-                      {line.booking?.guest?.phone && (
-                        <p className='text-muted-foreground text-xs'>{line.booking.guest.phone}</p>
-                      )}
+                      <PhoneLink
+                        phone={line.booking?.guest?.phone}
+                        className='text-muted-foreground text-xs'
+                      />
                     </div>
                   </td>
                   <td className='py-3 px-4 text-muted-foreground'>
@@ -196,7 +198,13 @@ function UpcomingTab() {
                     )}
                   </td>
                   <td className='py-3 px-4'>
-                    <p className='font-medium'>{line.booking?.guest?.name ?? '—'}</p>
+                    <div>
+                      <p className='font-medium'>{line.booking?.guest?.name ?? '—'}</p>
+                      <PhoneLink
+                        phone={line.booking?.guest?.phone}
+                        className='text-muted-foreground text-xs'
+                      />
+                    </div>
                   </td>
                   <td className='py-3 px-4 text-muted-foreground'>{line.label ?? '—'}</td>
                   <td className='py-3 px-4 text-right font-medium'>

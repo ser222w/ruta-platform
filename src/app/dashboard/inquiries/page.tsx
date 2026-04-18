@@ -12,6 +12,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import Link from 'next/link';
@@ -113,9 +114,7 @@ export default function InquiriesPage() {
                   )}
                 </div>
                 <div className='flex items-center gap-3 mt-1'>
-                  <span className='text-muted-foreground text-xs'>
-                    {inq.guest?.phone ?? inq.contactPhone}
-                  </span>
+                  <PhoneLink phone={inq.guest?.phone ?? inq.contactPhone} />
                   {inq.property && (
                     <span className='text-muted-foreground text-xs'>{inq.property.name}</span>
                   )}

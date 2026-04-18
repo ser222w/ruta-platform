@@ -4,6 +4,7 @@
 
 ### Added
 - TASK-13 (TASK-13)
+- `PhoneLink` component — клік по номеру телефону ініціює дзвінок через Ringostat Smart Phone у 8 місцях системи: заявки (список + картка), бронювання (список + картка), платежі, CRM (канбан + деталі), inbox. Замінено plain text та окрему кнопку "Дзвонити".
 
 ## [0.8.2] — 2026-04-17 — Ringostat Smart Phone: contact sync, click-to-call, SIP status, outgoing calls
 

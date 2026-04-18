@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { ChannelBadge } from './channel-badge';
 import { format, formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -64,7 +65,7 @@ export function ConversationContext({ conversationId }: ConversationContextProps
               Гість
             </p>
             <p className='font-medium'>{guest.name}</p>
-            {guest.phone && <p className='text-muted-foreground text-sm'>{guest.phone}</p>}
+            <PhoneLink phone={guest.phone} className='text-muted-foreground text-sm' />
             {guest.email && <p className='text-muted-foreground text-sm'>{guest.email}</p>}
             <div className='mt-2 flex flex-wrap gap-1.5'>
               <Badge variant='outline' className='text-[10px]'>
