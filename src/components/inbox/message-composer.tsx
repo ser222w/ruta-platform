@@ -1,24 +1,52 @@
 'use client';
 
-import { useRef, type KeyboardEvent, useState } from 'react';
+import { useRef, useCallback, type KeyboardEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-interface AttachmentPreview {
-  file: File;
-  url: string; // object URL for preview
+export interface Attachment {
+  key: string;
+  url: string;
   mime: string;
   name: string;
+  size: number;
+  bucket: 'public' | 'private';
+}
+
+async function uploadFileToR2(file: File, conversationId: string): Promise<Attachment> {
+  const ext = file.name.split('.').pop() ?? 'bin';
+  const key = `inbox/${conversationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const presignRes = await fetch('/api/upload/presigned', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, mime: file.type, size: file.size, bucket: 'public' })
+  });
+  if (!presignRes.ok) throw new Error('Failed to get upload URL');
+  const { uploadUrl, fileUrl } = (await presignRes.json()) as {
+    uploadUrl: string;
+    fileUrl: string;
+  };
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file
+  });
+  if (!uploadRes.ok) throw new Error('Upload to R2 failed');
+
+  return { key, url: fileUrl, mime: file.type, name: file.name, size: file.size, bucket: 'public' };
 }
 
 interface MessageComposerProps {
   value: string;
   onChange: (v: string) => void;
-  onSubmit: (attachments?: { url: string; mime: string; name: string; size?: number }[]) => void;
+  onSubmit: (attachments?: Attachment[]) => void;
   isLoading?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  conversationId?: string;
 }
 
 export function MessageComposer({
@@ -27,61 +55,98 @@ export function MessageComposer({
   onSubmit,
   isLoading,
   disabled,
-  placeholder = 'Написати повідомлення… (Enter — відправити, Shift+Enter — новий рядок)'
+  placeholder = 'Написати повідомлення… (Enter — відправити, Shift+Enter — новий рядок)',
+  conversationId
 }: MessageComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [uploadedAttachments, setUploadedAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if ((value.trim() || attachments.length > 0) && !isLoading && !disabled) {
+      if ((value.trim() || uploadedAttachments.length > 0) && !isLoading && !disabled) {
         handleSubmit();
       }
     }
   }
 
   function handleSubmit() {
-    const atts = attachments.map((a) => ({
-      url: a.url,
-      mime: a.mime,
-      name: a.name,
-      size: a.file.size
-    }));
-    onSubmit(atts.length > 0 ? atts : undefined);
-    // cleanup previews
-    attachments.forEach((a) => URL.revokeObjectURL(a.url));
-    setAttachments([]);
+    onSubmit(uploadedAttachments.length > 0 ? uploadedAttachments : undefined);
+    setUploadedAttachments([]);
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    const previews = files.map((f) => ({
-      file: f,
-      url: URL.createObjectURL(f),
-      mime: f.type,
-      name: f.name
-    }));
-    setAttachments((prev) => [...prev, ...previews]);
-    // reset input so same file can be picked again
-    e.target.value = '';
-  }
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = '';
+      if (!files.length || !conversationId) return;
+      setUploading(true);
+      try {
+        const uploads = await Promise.all(files.map((f) => uploadFileToR2(f, conversationId)));
+        setUploadedAttachments((prev) => [...prev, ...uploads]);
+      } catch (err) {
+        console.error('Upload failed:', err);
+      } finally {
+        setUploading(false);
+      }
+    },
+    [conversationId]
+  );
+
+  const startRecording = useCallback(async () => {
+    if (!conversationId) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => chunksRef.current.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+        setUploading(true);
+        try {
+          const att = await uploadFileToR2(file, conversationId);
+          setUploadedAttachments((prev) => [...prev, att]);
+        } finally {
+          setUploading(false);
+        }
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    } catch {
+      alert('Мікрофон недоступний');
+    }
+  }, [conversationId]);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsRecording(false);
+  }, []);
 
   function removeAttachment(idx: number) {
-    setAttachments((prev) => {
-      URL.revokeObjectURL(prev[idx]!.url);
-      return prev.filter((_, i) => i !== idx);
-    });
+    setUploadedAttachments((prev) => prev.filter((_, i) => i !== idx));
   }
 
   return (
     <div className='border-t bg-white p-3'>
       {/* Attachment previews */}
-      {attachments.length > 0 && (
+      {uploadedAttachments.length > 0 && (
         <div className='mb-2 flex flex-wrap gap-2'>
-          {attachments.map((att, i) => (
-            <div key={i} className='relative'>
+          {uploadedAttachments.map((att, i) => (
+            <div key={att.key} className='relative group'>
               {att.mime.startsWith('image/') ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -90,8 +155,13 @@ export function MessageComposer({
                   className='h-16 w-16 rounded-md object-cover border'
                 />
               ) : att.mime.startsWith('audio/') ? (
-                // eslint-disable-next-line jsx-a11y/media-has-caption
-                <audio src={att.url} controls className='h-10 w-36' />
+                <div className='flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs h-10'>
+                  🎙 {att.name}
+                </div>
+              ) : att.mime.startsWith('video/') ? (
+                <div className='flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs h-10'>
+                  🎥 {att.name}
+                </div>
               ) : (
                 <div className='flex h-16 w-32 items-center justify-center rounded-md border bg-gray-50 px-2 text-xs text-gray-600 truncate'>
                   📎 {att.name}
@@ -99,12 +169,17 @@ export function MessageComposer({
               )}
               <button
                 onClick={() => removeAttachment(i)}
-                className='absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white hover:bg-red-600'
+                className='absolute -right-1.5 -top-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white hover:bg-red-600'
               >
                 ×
               </button>
             </div>
           ))}
+        </div>
+      )}
+      {uploading && (
+        <div className='mb-2 text-xs text-muted-foreground flex items-center gap-1'>
+          <span className='animate-spin inline-block'>⏳</span> Завантаження...
         </div>
       )}
 
@@ -113,7 +188,7 @@ export function MessageComposer({
         <button
           type='button'
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isLoading}
+          disabled={disabled || isLoading || uploading}
           className={cn(
             'mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg transition-colors',
             'text-gray-400 hover:bg-gray-100 hover:text-gray-600',
@@ -123,6 +198,32 @@ export function MessageComposer({
         >
           📎
         </button>
+
+        {/* Voice recording button */}
+        {isRecording ? (
+          <button
+            type='button'
+            onClick={stopRecording}
+            className='mb-0.5 flex h-8 shrink-0 items-center gap-1 rounded-full px-2 text-xs text-red-500 hover:text-red-600 animate-pulse'
+            title='Зупинити запис'
+          >
+            ⏹ {recordingSeconds}с
+          </button>
+        ) : (
+          <button
+            type='button'
+            onClick={startRecording}
+            disabled={disabled || isLoading || uploading || !conversationId}
+            className={cn(
+              'mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg transition-colors',
+              'text-gray-400 hover:bg-gray-100 hover:text-gray-600',
+              'disabled:cursor-not-allowed disabled:opacity-40'
+            )}
+            title='Голосове повідомлення'
+          >
+            🎙
+          </button>
+        )}
 
         <input
           ref={fileInputRef}
@@ -146,7 +247,7 @@ export function MessageComposer({
         />
         <Button
           onClick={handleSubmit}
-          disabled={(!value.trim() && attachments.length === 0) || isLoading || disabled}
+          disabled={(!value.trim() && uploadedAttachments.length === 0) || isLoading || disabled}
           size='sm'
           className='mb-0.5 shrink-0'
         >

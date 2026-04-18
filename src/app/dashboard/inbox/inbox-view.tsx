@@ -6,7 +6,7 @@ import { trpc } from '@/lib/trpc';
 import { useInboxSSE } from '@/hooks/use-inbox-sse';
 import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
-import { MessageComposer } from '@/components/inbox/message-composer';
+import { MessageComposer, type Attachment } from '@/components/inbox/message-composer';
 import { ConversationContext } from '@/components/inbox/conversation-context';
 import { ChatTabs, type ChatTab } from '@/components/inbox/chat-tabs';
 import { NotesTab } from '@/components/inbox/notes-tab';
@@ -117,7 +117,7 @@ export function InboxView() {
     markReadMutation.mutate({ conversationId: id });
   }
 
-  function handleSend(attachments?: { url: string; mime: string; name: string; size?: number }[]) {
+  function handleSend(attachments?: Attachment[]) {
     if (!draft.trim() && !attachments?.length) return;
     if (!conversationId) return;
     sendMutation.mutate({
@@ -247,6 +247,7 @@ export function InboxView() {
                     onChange={setDraft}
                     onSubmit={handleSend}
                     isLoading={sendMutation.isPending}
+                    conversationId={conversationId ?? undefined}
                   />
                 </>
               )}
