@@ -48,4 +48,8 @@ describe('FileService', () => {
     const url = await svc.getDownloadUrl('documents/guest1/passport/scan.pdf');
     expect(url).toContain('presigned');
   });
+
+  it('deleteFile calls send with correct public bucket', async () => {
+    await expect(svc.deleteFile('inbox/conv1/msg1/photo.jpg', 'public')).resolves.toBeUndefined();
+  });
 });

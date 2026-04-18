@@ -29,13 +29,23 @@ export class FileService {
   private cdnUrl: string;
 
   constructor() {
-    const accountId = process.env.R2_ACCOUNT_ID!;
+    const accountId = process.env.R2_ACCOUNT_ID;
+    if (!accountId) throw new Error('R2_ACCOUNT_ID env var is required');
+
     this.client = new S3Client({
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!
+        accessKeyId:
+          process.env.R2_ACCESS_KEY_ID ??
+          (() => {
+            throw new Error('R2_ACCESS_KEY_ID env var is required');
+          })(),
+        secretAccessKey:
+          process.env.R2_SECRET_ACCESS_KEY ??
+          (() => {
+            throw new Error('R2_SECRET_ACCESS_KEY env var is required');
+          })()
       }
     });
     this.publicBucket = process.env.R2_PUBLIC_BUCKET ?? 'ruta-public';
@@ -54,6 +64,10 @@ export class FileService {
     return { uploadUrl, fileUrl };
   }
 
+  /**
+   * Generates a presigned GET URL for private files (15 min TTL).
+   * Public files should be accessed directly via their CDN URL.
+   */
   async getDownloadUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({ Bucket: this.privateBucket, Key: key });
     return getSignedUrl(this.client, command, { expiresIn: 900 }); // 15 min
@@ -65,4 +79,10 @@ export class FileService {
   }
 }
 
-export const fileService = new FileService();
+let _fileService: FileService | undefined;
+export const fileService = new Proxy({} as FileService, {
+  get(_target, prop) {
+    if (!_fileService) _fileService = new FileService();
+    return (_fileService as unknown as Record<string | symbol, unknown>)[prop];
+  }
+});
