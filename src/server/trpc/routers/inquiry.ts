@@ -78,25 +78,31 @@ export const inquiryRouter = router({
     const { page, limit, status, propertyId, assignedToId, search } = input;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const andClauses: Record<string, unknown>[] = [];
 
-    // CLOSER бачить тільки свої звернення
+    // CLOSER бачить свої звернення + всі незакріплені (unassigned)
     if (ctx.user.role === 'CLOSER') {
-      where.assignedToId = ctx.user.id;
+      andClauses.push({
+        OR: [{ assignedToId: ctx.user.id }, { assignedToId: null }]
+      });
     }
 
-    if (status) where.status = status;
-    if (propertyId) where.propertyId = propertyId;
-    if (assignedToId) where.assignedToId = assignedToId;
+    if (status) andClauses.push({ status });
+    if (propertyId) andClauses.push({ propertyId });
+    if (assignedToId) andClauses.push({ assignedToId });
 
     if (search) {
-      where.OR = [
-        { contactName: { contains: search, mode: 'insensitive' } },
-        { contactPhone: { contains: search } },
-        { guest: { name: { contains: search, mode: 'insensitive' } } },
-        { guest: { phone: { contains: search } } }
-      ];
+      andClauses.push({
+        OR: [
+          { contactName: { contains: search, mode: 'insensitive' } },
+          { contactPhone: { contains: search } },
+          { guest: { name: { contains: search, mode: 'insensitive' } } },
+          { guest: { phone: { contains: search } } }
+        ]
+      });
     }
+
+    const where = andClauses.length > 0 ? { AND: andClauses } : {};
 
     const [items, total] = await db.$transaction([
       db.inquiry.findMany({
