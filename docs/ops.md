@@ -4,16 +4,16 @@
 
 | Resource | Value |
 |---|---|
-| Server | Hetzner CX42, `178.104.206.63` |
-| SSH | `ssh -tt root@178.104.206.63` (key: `~/.ssh/id_ed25519`, requires `-tt`) |
-| Coolify URL | `https://cf.ruta.cam` (not coolify.ruta.cam) |
+| App server | Hetzner CX33, `178.104.206.63` (Nuremberg) |
+| Coolify server | Hetzner, `46.225.219.250` (separate machine) |
+| SSH | `ssh -i ~/.ssh/id_ed25519 -tt root@178.104.206.63` (requires `-tt`) |
+| Coolify UI | `https://cf.ruta.cam` (NOT coolify.ruta.cam) |
 | App URL | `https://app.ruta.cam` |
 | Coolify project UUID | `pgg88ggs4wcgoggsgc8c8ggw` |
 | App UUID | `dgocwo8kco88so4cs4wwc0sg` |
-| PostgreSQL UUID | `c0coggc8o8s0c0w8gowcoc00` |
+| PostgreSQL UUID | `c0coggc8o8s0c0w8gowcoc00` (internal host, IP 172.18.0.4) |
 | Redis UUID | `e4gos8k44sgwoc88s40s4s0c` |
-| GitHub repo | `ser222w/ruta-platform` |
-| GitHub webhook hook ID | `606776039` |
+| GitHub repo | `ser222w/ruta-platform` (**must stay PUBLIC**) |
 
 ---
 
@@ -22,31 +22,75 @@
 ### Auto-deploy
 ```
 git push origin main
-  → GitHub webhook (hook ID: 606776039) → Coolify
-  → Docker build on server (~3-4 min)
-  → container restart
+  → Coolify polls / webhook → Docker build on app server (~3-4 min)
+  → old container replaced automatically
 ```
 
-### Manual trigger
+### Manual trigger (API)
 ```bash
 curl -s -X GET \
   -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
-  "https://cf.ruta.cam/api/v1/deploy?uuid=dgocwo8kco88so4cs4wwc0sg"
+  "https://cf.ruta.cam/api/v1/deploy?uuid=dgocwo8kco88so4cs4wwc0sg&force=true"
+```
+
+### Watch deploy status
+```bash
+# Replace <uuid> with deployment_uuid from trigger response
+curl -s -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
+  "https://cf.ruta.cam/api/v1/deployments/<uuid>" | python3 -c \
+  "import sys,json; d=json.load(sys.stdin); print(d['status'])"
 ```
 
 ### Smoke test after deploy
 ```bash
-npx playwright screenshot --browser chromium https://app.ruta.cam/dashboard/today /tmp/smoke.png
+curl -s -o /dev/null -w "%{http_code}" https://app.ruta.cam/dashboard/inbox
+# Expected: 200
 ```
 
-### Production migration (via temp container)
+### Production migration
+Standalone image does NOT include prisma CLI. Use temp container:
 ```bash
-# Run on prod server in Coolify network:
-docker run --rm --network coolify \
-  -e DATABASE_URL="$PROD_DATABASE_URL" \
-  ghcr.io/ser222w/ruta-platform:latest \
-  npx prisma migrate deploy --schema ./prisma/schema
+ssh -i ~/.ssh/id_ed25519 -tt root@178.104.206.63 "docker run --rm \
+  --network coolify \
+  --add-host c0coggc8o8s0c0w8gowcoc00:172.18.0.4 \
+  -e DATABASE_URL='postgres://ruta:<PASSWORD>@c0coggc8o8s0c0w8gowcoc00:5432/ruta_platform' \
+  node:22-slim \
+  sh -c 'apt-get update -qq && apt-get install -y -qq openssl git openssh-client 2>/dev/null | tail -1 && \
+    GIT_SSH_COMMAND=\"ssh -i /tmp/key -o StrictHostKeyChecking=no\" \
+    git clone --depth=1 git@github.com:ser222w/ruta-platform.git /tmp/app 2>&1 | tail -2 && \
+    cd /tmp/app && npm install prisma@6 --save-dev --silent 2>&1 | tail -1 && \
+    npx prisma@6 migrate deploy --schema ./prisma/schema'; exit"
 ```
+
+Or directly via psql for simple migrations:
+```bash
+ssh -i ~/.ssh/id_ed25519 -tt root@178.104.206.63 bash << 'EOF'
+docker exec -i c0coggc8o8s0c0w8gowcoc00 psql -U ruta -d ruta_platform << 'SQL'
+-- your SQL here
+SQL
+EOF
+```
+
+---
+
+## Coolify Configuration
+
+### Source config (CRITICAL)
+Coolify uses **Public GitHub** (source_id=0) — repo must be **public**.
+
+⚠️ **If repo is made private → deploy breaks** with JWT/key error.
+
+Fix broken deploy (SSH to Coolify server):
+```bash
+ssh -i ~/.ssh/id_ed25519 -tt root@46.225.219.250 "
+docker exec coolify-db psql -U coolify -d coolify -c \"
+  UPDATE applications
+  SET source_id = 0, git_repository = 'ser222w/ruta-platform'
+  WHERE uuid = 'dgocwo8kco88so4cs4wwc0sg';
+\"
+exit"
+```
+Then retrigger deploy via API.
 
 ---
 
