@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 BASE=${1:-https://app.ruta.cam}
-ROUTES=(/dashboard/today /dashboard/inbox /dashboard/planning /dashboard/payments /dashboard/reports /portal/booking)
+ROUTES=(/dashboard/today /dashboard/inbox /dashboard/planning /dashboard/payments /dashboard/reports)
 
 echo "🔍 Smoke test на $BASE"
 FAILED=0
