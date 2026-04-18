@@ -82,6 +82,7 @@ model Conversation {
 
   messages  Message[]
   inquiries Inquiry[]
+  notes     ConversationNote[]
 
   @@unique([inboxId, externalThreadId])
   @@index([channel, status])
@@ -153,4 +154,35 @@ model ChannelQuota {
   createdAt      DateTime  @default(now())
 
   @@unique([propertyId, roomCategoryId, channel, month, year])
+}
+
+// =============================================================
+// QUICK REPLY — saved reply templates for managers
+// =============================================================
+model QuickReply {
+  id        String   @id @default(cuid())
+  brandId   String?
+  title     String
+  content   String
+  shortcut  String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@map("quick_replies")
+}
+
+// =============================================================
+// CONVERSATION NOTE — internal manager notes on a conversation
+// =============================================================
+model ConversationNote {
+  id             String   @id @default(cuid())
+  conversationId String
+  content        String
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@map("conversation_notes")
 }

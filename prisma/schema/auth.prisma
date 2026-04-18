@@ -29,8 +29,9 @@ model User {
   assignedInquiries Inquiry[]    @relation("inquiryAssignee")
   assignedTasks     Task[]       @relation("taskAssignee")
   // Omnichannel inbox
-  assignedConversations Conversation[] @relation("conversationAssignee")
-  sentMessages          Message[]      @relation("messageSender")
+  assignedConversations Conversation[]     @relation("conversationAssignee")
+  sentMessages          Message[]          @relation("messageSender")
+  conversationNotes     ConversationNote[]
 }
 
 model Session {
