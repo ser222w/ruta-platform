@@ -434,5 +434,35 @@ export const inboxRouter = router({
       db.conversation.count({ where: { status: 'OPEN' } })
     ]);
     return { unread, mine, total };
-  })
+  }),
+
+  // ─────────────────────────────────────────────
+  // GUEST HISTORY
+  // ─────────────────────────────────────────────
+
+  getGuestHistory: authedProcedure
+    .input(
+      z.object({
+        guestId: z.string(),
+        excludeConversationId: z.string().optional()
+      })
+    )
+    .query(async ({ input }) => {
+      return db.conversation.findMany({
+        where: {
+          inquiries: { some: { guest: { id: input.guestId } } },
+          ...(input.excludeConversationId ? { id: { not: input.excludeConversationId } } : {})
+        },
+        orderBy: { lastMessageAt: 'desc' },
+        take: 10,
+        include: {
+          inbox: { select: { id: true, name: true, channelType: true } },
+          messages: {
+            orderBy: { sentAt: 'desc' },
+            take: 1,
+            select: { content: true, sentAt: true }
+          }
+        }
+      });
+    })
 });
