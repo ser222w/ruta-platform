@@ -4,6 +4,8 @@ import { useRef, useCallback, type KeyboardEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { QuickReplyBar } from './quick-reply-bar';
+import { trpc } from '@/lib/trpc';
 
 export interface Attachment {
   key: string;
@@ -68,6 +70,33 @@ export function MessageComposer({
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [quickReplySearch, setQuickReplySearch] = useState('');
+  const [quickReplySearchMode, setQuickReplySearchMode] = useState(false);
+
+  const createQuickReply = trpc.inbox.createQuickReply.useMutation();
+
+  function handleTextChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    onChange(val);
+    const hashMatch = val.match(/#(\w*)$/);
+    if (hashMatch) {
+      setQuickReplySearchMode(true);
+      setQuickReplySearch(hashMatch[1] ?? '');
+    } else if (quickReplySearchMode) {
+      setQuickReplySearchMode(false);
+    }
+  }
+
+  function handleQuickReplySelect(content: string) {
+    onChange(value.replace(/#\w*$/, content));
+    setQuickReplySearchMode(false);
+  }
+
+  async function handleSaveAsTemplate() {
+    const title = window.prompt('Назва шаблону:');
+    if (!title || !value.trim()) return;
+    await createQuickReply.mutateAsync({ title, content: value.trim() });
+  }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -183,6 +212,23 @@ export function MessageComposer({
         </div>
       )}
 
+      {/* Quick reply bar */}
+      <div className='relative'>
+        {quickReplySearchMode && (
+          <QuickReplyBar
+            searchMode
+            search={quickReplySearch}
+            onSelect={handleQuickReplySelect}
+            onSaveCurrentAsTemplate={handleSaveAsTemplate}
+            onCloseSearch={() => setQuickReplySearchMode(false)}
+          />
+        )}
+        <QuickReplyBar
+          onSelect={handleQuickReplySelect}
+          onSaveCurrentAsTemplate={handleSaveAsTemplate}
+        />
+      </div>
+
       <div className='flex items-end gap-2'>
         {/* File attach button */}
         <button
@@ -238,7 +284,7 @@ export function MessageComposer({
           ref={textareaRef}
           data-testid='message-composer'
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || isLoading}
