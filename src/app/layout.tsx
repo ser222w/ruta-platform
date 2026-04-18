@@ -1,4 +1,5 @@
 import Providers from '@/components/layout/providers';
+import { DeployBadge } from '@/components/layout/deploy-badge';
 import { Toaster } from '@/components/ui/sonner';
 import { fontVariables } from '@/components/themes/font.config';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
@@ -64,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Providers activeThemeValue={themeToApply}>
               <Toaster />
               {children}
+              <DeployBadge />
             </Providers>
           </ThemeProvider>
         </NuqsAdapter>
