@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PhoneLink } from '@/components/shared/phone-link';
 import { ChannelBadge } from './channel-badge';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import Link from 'next/link';
 
@@ -138,7 +138,63 @@ export function ConversationContext({ conversationId }: ConversationContextProps
             </Button>
           </div>
         </div>
+
+        {/* Tags */}
+        <div>
+          <p className='text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider'>
+            Теги
+          </p>
+          <div className='flex flex-wrap gap-1'>
+            <button className='text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-full px-2 py-0.5'>
+              + Тег
+            </button>
+          </div>
+        </div>
+
+        {/* Previous conversations */}
+        {guest && <PreviousConversations guestId={guest.id} excludeId={conversationId} />}
       </div>
     </ScrollArea>
+  );
+}
+
+function PreviousConversations({ guestId, excludeId }: { guestId: string; excludeId: string }) {
+  const { data: history = [] } = trpc.inbox.getGuestHistory.useQuery({
+    guestId,
+    excludeConversationId: excludeId
+  });
+
+  if (history.length === 0) return null;
+
+  return (
+    <div>
+      <p className='text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider'>
+        Попередні діалоги
+      </p>
+      <div className='space-y-1.5'>
+        {history.map((c) => (
+          <div
+            key={c.id}
+            className='flex items-start justify-between gap-2 rounded p-2 hover:bg-muted transition-colors cursor-pointer text-xs'
+          >
+            <div className='min-w-0'>
+              <span className='font-medium block truncate'>
+                {(c.inbox as { name?: string })?.name ?? c.channel}
+              </span>
+              {c.messages[0] && (
+                <p className='text-muted-foreground truncate max-w-[150px]'>
+                  {c.messages[0].content}
+                </p>
+              )}
+            </div>
+            <span className='text-muted-foreground flex-shrink-0'>
+              {c.lastMessageAt
+                ? formatDistanceToNow(new Date(c.lastMessageAt), { addSuffix: true, locale: uk })
+                : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
