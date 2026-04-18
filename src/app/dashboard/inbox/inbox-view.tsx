@@ -8,6 +8,8 @@ import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
 import { MessageComposer } from '@/components/inbox/message-composer';
 import { ConversationContext } from '@/components/inbox/conversation-context';
+import { ChatTabs, type ChatTab } from '@/components/inbox/chat-tabs';
+import { NotesTab } from '@/components/inbox/notes-tab';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -41,6 +43,7 @@ export function InboxView() {
   // Local filter state
   const [channel, setChannel] = useState('ALL');
   const [draft, setDraft] = useState('');
+  const [chatTab, setChatTab] = useState<ChatTab>('chat');
 
   // Counts badge
   const { data: counts } = trpc.inbox.getCounts.useQuery(undefined, {
@@ -81,6 +84,7 @@ export function InboxView() {
   });
 
   const conversations = convData?.items ?? [];
+  const selectedConversation = conversations.find((c) => c.id === conversationId);
   // Map guestId → guest data for name/phone display
   const guestMap: Record<string, { name: string; phone?: string | null }> = {};
   for (const g of convData?.guests ?? []) {
@@ -228,15 +232,34 @@ export function InboxView() {
         <div className='flex min-h-0 flex-1 flex-col'>
           {conversationId ? (
             <>
-              <div className='min-h-0 flex-1'>
-                <MessageThread messages={msgData?.items ?? []} isLoading={msgLoading} />
-              </div>
-              <MessageComposer
-                value={draft}
-                onChange={setDraft}
-                onSubmit={handleSend}
-                isLoading={sendMutation.isPending}
+              <ChatTabs
+                active={chatTab}
+                onChange={setChatTab}
+                hasEmail={selectedConversation?.channel === 'EMAIL'}
               />
+              {chatTab === 'chat' && (
+                <>
+                  <div className='min-h-0 flex-1'>
+                    <MessageThread messages={msgData?.items ?? []} isLoading={msgLoading} />
+                  </div>
+                  <MessageComposer
+                    value={draft}
+                    onChange={setDraft}
+                    onSubmit={handleSend}
+                    isLoading={sendMutation.isPending}
+                  />
+                </>
+              )}
+              {chatTab === 'notes' && (
+                <div className='min-h-0 flex-1'>
+                  <NotesTab conversationId={conversationId} />
+                </div>
+              )}
+              {chatTab === 'email' && (
+                <div className='flex-1 flex items-center justify-center text-sm text-muted-foreground p-8'>
+                  Email thread — coming soon
+                </div>
+              )}
             </>
           ) : (
             <div className='text-muted-foreground flex h-full items-center justify-center text-sm'>
