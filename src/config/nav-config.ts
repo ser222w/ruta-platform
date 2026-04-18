@@ -30,14 +30,23 @@ export const navGroups: NavGroup[] = [
         url: '/dashboard/inbox',
         icon: 'chat',
         isActive: false,
-        items: []
+        items: [
+          { title: 'Нові', url: '/dashboard/inbox?tab=new' },
+          { title: 'На догляді', url: '/dashboard/inbox?tab=mine' },
+          { title: 'Всі', url: '/dashboard/inbox?tab=all' },
+          { title: 'Архів', url: '/dashboard/inbox?tab=archived' }
+        ]
       },
       {
-        title: 'Calls',
+        title: 'Дзвінки',
         url: '/dashboard/calls',
         icon: 'phone',
         isActive: false,
-        items: []
+        items: [
+          { title: 'Пропущені', url: '/dashboard/calls?tab=missed' },
+          { title: 'Черга передзвонів', url: '/dashboard/calls?tab=queue' },
+          { title: 'Всі сьогодні', url: '/dashboard/calls?tab=today' }
+        ]
       }
     ]
   },
@@ -45,21 +54,26 @@ export const navGroups: NavGroup[] = [
     label: 'Operations',
     items: [
       {
-        title: 'Bookings',
+        title: 'Замовлення',
         url: '/dashboard/bookings',
         icon: 'calendar',
         isActive: false,
-        items: []
+        items: [
+          { title: 'Активні', url: '/dashboard/bookings?tab=active' },
+          { title: 'Сплачені', url: '/dashboard/bookings?tab=paid' },
+          { title: 'Втрачені', url: '/dashboard/bookings?tab=lost' },
+          { title: 'Скасовані', url: '/dashboard/bookings?tab=cancelled' }
+        ]
       },
       {
-        title: 'Rooms',
+        title: 'Номери',
         url: '/dashboard/rooms',
         icon: 'workspace',
         isActive: false,
         items: []
       },
       {
-        title: 'Payments',
+        title: 'Платежі',
         url: '/dashboard/payments',
         icon: 'billing',
         isActive: false,
@@ -71,7 +85,7 @@ export const navGroups: NavGroup[] = [
     label: 'Analytics',
     items: [
       {
-        title: 'Reports',
+        title: 'Звіти',
         url: '/dashboard/reports',
         icon: 'trendingUp',
         isActive: false,
