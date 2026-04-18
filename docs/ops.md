@@ -19,29 +19,48 @@
 
 ## Deploy Workflow
 
-### Auto-deploy
-```
-git push origin main
-  → Coolify polls / webhook → Docker build on app server (~3-4 min)
-  → old container replaced automatically
+⚠️ **GitHub webhook is unreliable — ALWAYS trigger Coolify API manually after push.**
+
+### Full deploy sequence (one shot)
+```bash
+git push origin main && \
+  DEPLOY=$(curl -s -X GET \
+    -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
+    "https://cf.ruta.cam/api/v1/deploy?uuid=dgocwo8kco88so4cs4wwc0sg&force=true" | \
+    python3 -c "import sys,json; print(json.load(sys.stdin)['deployments'][0]['deployment_uuid'])") && \
+  echo "Deployment queued: $DEPLOY" && \
+  until curl -s -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
+    "https://cf.ruta.cam/api/v1/deployments/$DEPLOY" | \
+    python3 -c "import sys,json; s=json.load(sys.stdin)['status']; print(s); exit(0 if s in ('finished','failed') else 1)" \
+    2>/dev/null; do sleep 15; done && \
+  curl -s -o /dev/null -w "Smoke: %{http_code}\n" https://app.ruta.cam/dashboard/inbox
 ```
 
-### Manual trigger (API)
+### Step-by-step (if debugging)
+
+**1. Push:**
+```bash
+git push origin main
+```
+
+**2. Trigger Coolify:**
 ```bash
 curl -s -X GET \
   -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
   "https://cf.ruta.cam/api/v1/deploy?uuid=dgocwo8kco88so4cs4wwc0sg&force=true"
+# Response: {"deployments":[{"deployment_uuid":"<uuid>", ...}]}
 ```
 
-### Watch deploy status
+**3. Watch status:**
 ```bash
-# Replace <uuid> with deployment_uuid from trigger response
+# Replace <uuid> with deployment_uuid from step 2
 curl -s -H "Authorization: Bearer 1|q131P669oBtT5rMhdHZk1mGoEzUVUTIR4TCfbvhE0ac83903" \
   "https://cf.ruta.cam/api/v1/deployments/<uuid>" | python3 -c \
   "import sys,json; d=json.load(sys.stdin); print(d['status'])"
+# Values: in_progress → finished | failed
 ```
 
-### Smoke test after deploy
+**4. Smoke test:**
 ```bash
 curl -s -o /dev/null -w "%{http_code}" https://app.ruta.cam/dashboard/inbox
 # Expected: 200
