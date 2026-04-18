@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- TASK-13 (TASK-13)
+
 ## [0.8.2] — 2026-04-17 — Ringostat Smart Phone: contact sync, click-to-call, SIP status, outgoing calls
 
 ### Added

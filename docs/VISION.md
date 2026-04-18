@@ -16,9 +16,10 @@ Direct booking conversion rate: 19% → 30% до 2026-12-31
 3. **Repeat guest engine** — LTV Y2/Y1 ≥ 2.3×
 
 ## Non-goals
-- НЕ будуємо власний PMS (Servio залишається)
+- НЕ будуємо власний PMS (Servio → Ruta OS поступово, але без повного PMS feature parity) <!-- Changed: Servio замінюється Ruta OS по scope, тому "залишається" було неточним -->
 - НЕ робимо app для гостей (web-first)
 - НЕ масштабуємо B2B понад 25% квоти
+- НЕ замінюємо BAS ERP у Ruta OS (окремий трек через Ніна + external consultant) <!-- Changed: додано з research scope boundary -->
 
 ## Constraints
 - Budget tech: $200/mo Claude + ~$240/mo Marketing OS infra
@@ -37,6 +38,6 @@ Direct booking conversion rate: 19% → 30% до 2026-12-31
 - [ ] Andorra entity operational
 
 ## Kill criteria
-- Pillar 1 killed: OTA share росте 3 місяці поспіль попри інвестиції
-- Pillar 2 killed: треба наймати full-time dev
-- Pillar 3 killed: LTV Y2/Y1 < 1.8× на 2026-12-31
+- Pillar 1 killed: OTA share росте 3 місяці поспіль попри інвестиції у direct channel <!-- Changed: уточнено "попри інвестиції" → конкретніше -->
+- Pillar 2 killed: треба наймати full-time dev АБО Claude Code iteration cadence > 48h/feature
+- Pillar 3 killed: LTV Y2/Y1 < 1.8× на 2026-12-31 (baseline вимірюється Q2 2026) <!-- Changed: додано (baseline вимірюється Q2 2026) — без baseline критерій не можна перевірити -->
