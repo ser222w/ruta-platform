@@ -1,0 +1,124 @@
+name: Auto-merge after CI
+
+on:
+  workflow_run:
+    workflows: ["Claude Full Cycle"]
+    types: [completed]
+
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Find associated PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Try direct PR link first
+          PR="${{ github.event.workflow_run.pull_requests[0].number }}"
+
+          # Fallback: find PR by head branch
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
+            HEAD="${{ github.event.workflow_run.head_branch }}"
+            [ "$HEAD" = "main" ] && { echo "main branch, skip"; echo "found=false" >> $GITHUB_OUTPUT; exit 0; }
+            PR=$(gh pr list --head "$HEAD" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
+            echo "No open PR found"
+            echo "found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Found PR #$PR"
+          echo "found=true" >> $GITHUB_OUTPUT
+          echo "number=$PR" >> $GITHUB_OUTPUT
+
+      - name: Check labels + state
+        id: check
+        if: steps.pr.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ steps.pr.outputs.number }}"
+          INFO=$(gh pr view $PR --json state,isDraft,labels,mergeable)
+
+          STATE=$(echo "$INFO" | jq -r '.state')
+          DRAFT=$(echo "$INFO" | jq -r '.isDraft')
+          MERGEABLE=$(echo "$INFO" | jq -r '.mergeable')
+          LABELS=$(echo "$INFO" | jq -r '.labels[].name' | tr '\n' ',')
+
+          echo "State=$STATE Draft=$DRAFT Mergeable=$MERGEABLE"
+          echo "Labels: $LABELS"
+
+          if [ "$STATE" != "OPEN" ]; then
+            echo "Not open"
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "$MERGEABLE" = "CONFLICTING" ]; then
+            echo "Has conflicts"
+            gh pr comment $PR --body "🛑 Auto-merge blocked: merge conflicts. Resolve manually."
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Safe labels → proceed
+          PROCEED=false
+          for safe in auto-merge docs-only deps ci-fix quick-win; do
+            if echo ",$LABELS," | grep -q ",$safe,"; then
+              PROCEED=true
+              echo "Safe label: $safe"
+              break
+            fi
+          done
+
+          # Block labels override
+          for block in review-required breaking do-not-merge wip security; do
+            if echo ",$LABELS," | grep -q ",$block,"; then
+              PROCEED=false
+              echo "Blocking label: $block — skip"
+              break
+            fi
+          done
+
+          echo "proceed=$PROCEED" >> $GITHUB_OUTPUT
+          echo "draft=$DRAFT" >> $GITHUB_OUTPUT
+
+      - name: Mark ready if draft
+        if: steps.check.outputs.proceed == 'true' && steps.check.outputs.draft == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ steps.pr.outputs.number }}"
+          gh pr ready $PR
+          echo "Draft → Ready"
+
+      - name: Merge PR
+        if: steps.check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ steps.pr.outputs.number }}"
+
+          echo "Attempting squash merge PR #$PR"
+          gh pr merge $PR --squash --delete-branch || {
+            echo "🛑 Merge failed"
+            gh pr comment $PR --body "🛑 Auto-merge failed. Merge manually when you see this."
+            exit 1
+          }
+
+          echo "✅ PR #$PR merged"

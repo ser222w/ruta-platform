@@ -84,6 +84,46 @@ Automatic Coolify deploy + scripts/smoke.sh will run post-merge.
     echo "   (PR already exists)"
   fi
 
+  # === Auto-labeling based on task labels ===
+  if [ -n "$TASK_ID" ]; then
+    TASK_LABELS=$(backlog task view "$TASK_ID" --format json 2>/dev/null | \
+      jq -r '.labels // [] | join(",")' 2>/dev/null || \
+      backlog task view "$TASK_ID" --plain 2>/dev/null | grep "^Labels:" | sed 's/^Labels: //' || echo "")
+    echo "📋 Task labels: $TASK_LABELS"
+
+    SAFE_LABELS="auto-merge docs docs-only deps ci-fix quick-win"
+    BLOCK_LABELS="review-required breaking do-not-merge wip security"
+
+    PR_LABEL="review-required"  # safe default
+
+    for l in $SAFE_LABELS; do
+      if echo ",$TASK_LABELS," | grep -qE ",$l,"; then
+        PR_LABEL="auto-merge"
+        echo "🤖 Safe label '$l' found → PR will auto-merge"
+        break
+      fi
+    done
+
+    for b in $BLOCK_LABELS; do
+      if echo ",$TASK_LABELS," | grep -qE ",$b,"; then
+        PR_LABEL="review-required"
+        echo "✋ Blocking label '$b' found → manual review required"
+        break
+      fi
+    done
+
+    # Ensure label exists in repo
+    if ! gh label list --json name --jq '.[].name' 2>/dev/null | grep -q "^${PR_LABEL}$"; then
+      COLOR="0e8a16"
+      [ "$PR_LABEL" = "review-required" ] && COLOR="d93f0b"
+      gh label create "$PR_LABEL" --color "$COLOR" 2>/dev/null || true
+    fi
+
+    gh pr edit --add-label "$PR_LABEL" 2>/dev/null && \
+      echo "✅ Applied label: $PR_LABEL" || \
+      echo "⚠️ Could not apply label (PR may be draft)"
+  fi
+
   echo ""
   echo "═══════════════════════════════════════════════"
   echo "✅ PRE-PR CYCLE COMPLETE. Ready for Sergiy review."

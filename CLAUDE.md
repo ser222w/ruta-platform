@@ -134,6 +134,29 @@ When Sergiy says "додай X", "треба Y", "хочу Z":
 
 DO NOT ask mid-execution. Orchestrator decides.
 
+## AUTO-MERGE DECISION (на Checkpoint 1)
+
+У кінці brainstorming, ПЕРЕД stop для approve spec, запитай Sergiy:
+
+"Risk classification — як merge?
+(a) auto-merge — quick win, low risk. PR merge-неться сам після CI green.
+(b) review-required — manual merge після твого перегляду (default для src/ коду).
+(c) docs-only — тільки .md файли. Auto-merge.
+
+Рекомендую: <варіант + причина одним реченням>"
+
+Після відповіді Sergiy: `backlog task edit $TASK_ID --labels <choice>`
+
+RECOMMENDATION GUIDE:
+
+Default **auto-merge**: typo fixes, docs, config tweaks, CI/workflow fixes (не auto-merge.yml!), deps, test additions, refactor без behavior change.
+
+Default **review-required**: нові features у src/features/, business logic, Prisma schema, RBAC/CASL, auth/payment/security, breaking API, files >400 LOC changed.
+
+Default **docs-only**: pure .md changes.
+
+ПРИ СУМНІВІ → review-required. Rollback з git revert завжди можливий.
+
 ---
 
 ## CHANGELOG
