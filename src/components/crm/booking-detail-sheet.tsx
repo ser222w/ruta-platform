@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { trpc } from '@/lib/trpc';
 import { STAGE_LABELS, STAGE_BADGE_VARIANT } from './pipeline-constants';
 import type { BookingStage } from '@prisma/client';
@@ -88,9 +89,10 @@ export function BookingDetailSheet({ bookingId, onClose }: BookingDetailSheetPro
                 {booking.guest ? (
                   <div className='space-y-1'>
                     <p className='font-medium'>{booking.guest.name}</p>
-                    {booking.guest.phone && (
-                      <p className='text-sm text-muted-foreground'>{booking.guest.phone}</p>
-                    )}
+                    <PhoneLink
+                      phone={booking.guest.phone}
+                      className='text-sm text-muted-foreground'
+                    />
                     {booking.guest.email && (
                       <p className='text-sm text-muted-foreground'>{booking.guest.email}</p>
                     )}

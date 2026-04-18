@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { PhoneLink } from '@/components/shared/phone-link';
 import { STAGE_LABELS, STAGE_BADGE_VARIANT } from './pipeline-constants';
 import type { BookingStage } from '@prisma/client';
 
@@ -72,9 +73,7 @@ export function BookingCard({ booking, onClick, isDragging, className }: Booking
       </p>
 
       {/* Телефон */}
-      {booking.guest?.phone && (
-        <p className='text-xs text-muted-foreground mt-0.5'>{booking.guest.phone}</p>
-      )}
+      <PhoneLink phone={booking.guest?.phone} className='text-xs text-muted-foreground mt-0.5' />
 
       {/* Дати + ночі */}
       {(booking.checkinDate || booking.checkoutDate) && (
