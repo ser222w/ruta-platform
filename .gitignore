@@ -57,3 +57,6 @@ next-env.d.ts
 /.claude/logs/
 /.claude/backups/
 .env.local
+
+# Git worktrees
+.worktrees/
