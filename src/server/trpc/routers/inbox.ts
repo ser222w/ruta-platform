@@ -295,6 +295,135 @@ export const inboxRouter = router({
     }),
 
   // ─────────────────────────────────────────────
+  // NOTES
+  // ─────────────────────────────────────────────
+
+  getNotes: authedProcedure
+    .input(z.object({ conversationId: z.string() }))
+    .query(async ({ input }) => {
+      return db.conversationNote.findMany({
+        where: { conversationId: input.conversationId },
+        include: { createdBy: { select: { id: true, name: true, image: true } } },
+        orderBy: { createdAt: 'asc' }
+      });
+    }),
+
+  createNote: authedProcedure
+    .input(z.object({ conversationId: z.string(), content: z.string().min(1).max(5000) }))
+    .mutation(async ({ ctx, input }) => {
+      return db.conversationNote.create({
+        data: {
+          conversationId: input.conversationId,
+          content: input.content,
+          createdById: ctx.user.id
+        },
+        include: { createdBy: { select: { id: true, name: true, image: true } } }
+      });
+    }),
+
+  deleteNote: authedProcedure
+    .input(z.object({ noteId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const note = await db.conversationNote.findUnique({ where: { id: input.noteId } });
+      if (!note) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (note.createdById !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
+      return db.conversationNote.delete({ where: { id: input.noteId } });
+    }),
+
+  // ─────────────────────────────────────────────
+  // QUICK REPLIES
+  // ─────────────────────────────────────────────
+
+  listQuickReplies: authedProcedure
+    .input(z.object({ brandId: z.string().optional(), search: z.string().optional() }))
+    .query(async ({ input }) => {
+      return db.quickReply.findMany({
+        where: {
+          AND: [
+            input.brandId
+              ? {
+                  OR: [{ brandId: input.brandId }, { brandId: null }]
+                }
+              : {},
+            input.search
+              ? {
+                  OR: [
+                    { title: { contains: input.search, mode: 'insensitive' } },
+                    { shortcut: { contains: input.search, mode: 'insensitive' } },
+                    { content: { contains: input.search, mode: 'insensitive' } }
+                  ]
+                }
+              : {}
+          ]
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }),
+
+  createQuickReply: authedProcedure
+    .input(
+      z.object({
+        title: z.string().min(1).max(100),
+        content: z.string().min(1).max(2000),
+        shortcut: z.string().optional(),
+        brandId: z.string().optional()
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return db.quickReply.create({
+        data: { ...input, createdBy: ctx.user.id }
+      });
+    }),
+
+  deleteQuickReply: authedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      return db.quickReply.delete({ where: { id: input.id } });
+    }),
+
+  // ─────────────────────────────────────────────
+  // UNANSWERED CONVERSATIONS
+  // ─────────────────────────────────────────────
+
+  getUnansweredCount: authedProcedure.query(async () => {
+    const result = await db.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*)::int as count
+      FROM "conversations" c
+      WHERE c.status = 'OPEN'
+        AND (
+          SELECT direction FROM "messages" m
+          WHERE m."conversationId" = c.id
+          ORDER BY m."sentAt" DESC
+          LIMIT 1
+        ) = 'INBOUND'
+    `;
+    return { count: Number(result[0]?.count ?? 0) };
+  }),
+
+  listUnanswered: authedProcedure
+    .input(z.object({ cursor: z.string().optional(), limit: z.number().max(100).default(30) }))
+    .query(async ({ input }) => {
+      const items = await db.$queryRaw<
+        Array<{ id: string; lastMessageAt: Date; waitingSince: Date }>
+      >`
+        SELECT c.id, c."lastMessageAt",
+          (SELECT m."sentAt" FROM "messages" m
+           WHERE m."conversationId" = c.id AND m.direction = 'INBOUND'
+           ORDER BY m."sentAt" DESC LIMIT 1) as "waitingSince"
+        FROM "conversations" c
+        WHERE c.status = 'OPEN'
+          AND (
+            SELECT direction FROM "messages" m
+            WHERE m."conversationId" = c.id
+            ORDER BY m."sentAt" DESC LIMIT 1
+          ) = 'INBOUND'
+        ORDER BY "waitingSince" ASC
+        LIMIT ${input.limit}
+      `;
+      return items;
+    }),
+
+  // ─────────────────────────────────────────────
   // COUNTS (for badges)
   // ─────────────────────────────────────────────
 
