@@ -1,0 +1,57 @@
+name: Claude Full Cycle
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  push:
+    branches: [main]
+
+concurrency:
+  group: claude-cycle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pre-merge:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: bun install
+      - name: Unit tests
+        run: bun test
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: E2E tests
+        run: bash scripts/run-tests.sh
+
+  post-merge:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Coolify deploy
+        env:
+          COOLIFY_API_URL: ${{ secrets.COOLIFY_API_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
+        run: bash scripts/wait-deploy.sh 600
+      - name: Production smoke
+        env:
+          PROD_URL: ${{ secrets.PROD_URL || 'https://app.ruta.cam' }}
+        run: bash scripts/smoke.sh $PROD_URL
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Post-merge cycle failed. Deploy may need rollback."

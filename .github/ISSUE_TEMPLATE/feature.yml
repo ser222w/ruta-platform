@@ -1,0 +1,28 @@
+name: Feature request
+description: Нова фіча — автоматично Claude → PR
+labels: [ai-scaffold]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Навіщо це? Який pillar VISION.md?
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [low, medium, high, critical]
+    validations:
+      required: true
