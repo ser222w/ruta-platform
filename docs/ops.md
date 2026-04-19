@@ -317,14 +317,38 @@ git config user.email "t5551955@gmail.com"
    ```
 4. Verify: send message to bot → conversation appears in `/dashboard/inbox`
 
-### e-chat
-1. Get API key from e-chat dashboard
-2. Create Inbox:
-   ```sql
-   INSERT INTO "Inbox" ("channelType","name","externalId","config","isActive")
-   VALUES ('ECHAT','e-chat Widget','<widget_id>','{"apiKey":"<KEY>"}',true);
+### e-chat (Telegram Personal API via telegram.e-chat.tech)
+
+**Production inbox:**
+- Inbox ID: `04ac660c-d755-42f9-b8b3-6ff8c5b3553e`
+- Phone: `+380987330000`
+- API key: `69af29385a4d0`
+- Webhook: `https://app.ruta.cam/api/webhooks/echat/04ac660c-d755-42f9-b8b3-6ff8c5b3553e`
+
+**Setup sequence (MUST do in order):**
+1. Activate channel via API (enables webhooks for the number):
+   ```bash
+   curl -s -X POST "https://telegram.e-chat.tech/api/CreateChannel.php" \
+     -H "Content-Type: application/json" \
+     -H "API: 69af29385a4d0" \
+     -d '{"number": "380987330000"}'
+   # Expected: {"status":"SUCCESS"}
    ```
-3. Configure webhook URL in e-chat: `https://app.ruta.cam/api/webhooks/echat/<INBOX_ID>`
+2. Set webhook URL in e-chat personal account (`telegram.e-chat.tech` → Settings → Webhooks):
+   ```
+   https://app.ruta.cam/api/webhooks/echat/04ac660c-d755-42f9-b8b3-6ff8c5b3553e
+   ```
+   ⚠️ This MUST be done manually in the UI — there is no API endpoint to set the webhook URL.
+
+3. Send outbound test message:
+   ```bash
+   curl -s -X POST "https://telegram.e-chat.tech/api/SendMessage.php" \
+     -H "Content-Type: application/json" \
+     -H "API: 69af29385a4d0" \
+     -d '{"user":{"number":"380987330000"},"message":{"id":"test-001","text":"Test"},"receiver":{"phone":"380675551955"}}'
+   ```
+
+**After redeploy:** re-run step 1 (`CreateChannel.php`) — channel deactivates on container restart.
 
 ### Meta (WhatsApp/FB/IG) — Phase 2 (planned)
 - Webhook URL: `https://app.ruta.cam/api/webhooks/meta`

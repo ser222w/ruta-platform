@@ -25,6 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ inb
   const rawBody = Buffer.from(await req.arrayBuffer());
   const headers = Object.fromEntries(req.headers.entries());
 
+  console.log('[webhook/echat] inboxId:', inboxId, 'body:', rawBody.toString().slice(0, 500));
+
   try {
     await processInboundWebhook(inbox, rawBody, headers);
     return NextResponse.json({ ok: true });
