@@ -4,11 +4,11 @@
 
 ### Added
 - `PhoneLink` component — клік по номеру телефону ініціює дзвінок через Ringostat Smart Phone у 8 місцях: заявки (список + картка), бронювання (список + картка), платежі (overdue + upcoming), CRM (канбан + деталі), inbox. Server Action `callGuest()` → `callback/outward_call`.
+- `/dashboard/calls` — журнал дзвінків з Ringostat: 4 351 записів, stats cards (всього/завершені/пропущені/з записом), фільтри (напрямок, статус, дати, пошук, наявність запису), UTM мітки (розгортаються кліком), ▶ Слухати (запис), лінк на звернення. tRPC router `calls.list` + `calls.stats`.
 
-### Known issues
-- `outward_call` повертає 403 — потрібен дозвіл на Click-to-Call у Ringostat для auth-key `EXepeznFltwOJTYuKDJvGSnnUBcJEcJC` (Settings → API → Permissions)
+### Known issues (Ringostat)
+- `outward_call` повертає 403 — потрібен дозвіл на Click-to-Call у Ringostat для auth-key (Settings → API → Permissions)
 - `sipExtension` менеджерів порожній — потрібен запуск `POST /api/calls/sync-employees` після налаштування Ringostat employees з email `@ruta.cam`
-- `/dashboard/calls` — placeholder, UI не реалізовано (дані в `phone_calls` є)
 
 ## [0.8.2] — 2026-04-17 — Ringostat Smart Phone: contact sync, click-to-call, SIP status, outgoing calls
 
